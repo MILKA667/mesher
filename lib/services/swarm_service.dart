@@ -169,8 +169,8 @@ class SwarmService {
     _broadcastCatalog();
 
     await _notifications.showFileEvent(
-      title: 'Файл в swarm',
-      body: '$name (${_humanSize(bytes.length)}) — раздаётся',
+      title: 'Файл доступен в mesh-сети',
+      body: '$name (${_humanSize(bytes.length)}) — ты раздаёшь',
     );
     return entry;
   }
@@ -190,11 +190,15 @@ class SwarmService {
     if (!await tempFile.exists()) {
       await tempFile.create(recursive: true);
     }
-    // Pre-size the file so we can write chunks at arbitrary offsets.
+    // Open in FileMode.write (O_RDWR | O_CREAT | O_TRUNC). This is the only
+    // Dart mode that lets us seek and write at arbitrary offsets. Keep the
+    // handle open for the whole download — chunk arrivals are random-access.
     final raf = await tempFile.open(mode: FileMode.write);
-    await raf.setPosition(entry.sizeBytes - 1);
-    await raf.writeByte(0);
-    await raf.close();
+    // Pre-size the file so writes at the last chunk offset don't underflow.
+    if (entry.sizeBytes > 0) {
+      await raf.setPosition(entry.sizeBytes - 1);
+      await raf.writeByte(0);
+    }
 
     final transfer = await _fileRepo.createTransfer(
       name: entry.name,
@@ -209,7 +213,7 @@ class SwarmService {
       transferId: transfer.id,
       tempPath: tempPath,
     );
-    job.raf = await tempFile.open(mode: FileMode.writeOnlyAppend);
+    job.raf = raf;
     _downloads[infoHash] = job;
 
     // Fan out initial chunk requests.
@@ -315,14 +319,11 @@ class SwarmService {
       if (job == null || job.finished) return;
       if (job.received.contains(chunkIndex)) return;
 
-      // Write at the correct offset.
-      final raf = await File(job.tempPath).open(mode: FileMode.writeOnlyAppend);
-      try {
-        await raf.setPosition(chunkIndex * kSwarmChunkSize);
-        await raf.writeFrom(data);
-      } finally {
-        await raf.close();
-      }
+      final raf = job.raf;
+      if (raf == null) return;
+      await raf.setPosition(chunkIndex * kSwarmChunkSize);
+      await raf.writeFrom(data);
+      await raf.flush();
       job.received.add(chunkIndex);
       job.inflight.remove(chunkIndex);
 
@@ -344,6 +345,12 @@ class SwarmService {
   Future<void> _finishDownload(_DownloadJob job) async {
     if (job.finished) return;
     job.finished = true;
+    // Release the open RAF before renaming the file (Windows requires it; on
+    // POSIX it's also cleaner).
+    try {
+      await job.raf?.close();
+    } catch (_) {}
+    job.raf = null;
     final finalPath =
         p.join(p.dirname(job.tempPath), job.entry.name);
     final tempFile = File(job.tempPath);
@@ -363,7 +370,7 @@ class SwarmService {
 
     await _notifications.showFileEvent(
       title: 'Файл загружен',
-      body: '${job.entry.name} — получено из swarm',
+      body: '${job.entry.name} — получен из mesh-сети',
     );
   }
 

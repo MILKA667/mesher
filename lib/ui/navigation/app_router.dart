@@ -6,7 +6,7 @@
 //   /radar          → RadarScreen
 //   /files          → FilesScreen
 //   /profile        → ProfileScreen
-//   /call/:peerId   → VideoCallScreen
+//   /call/:peerId   → VoiceCallScreen
 //
 // Example:
 // final router = GoRouter(routes: [
@@ -16,6 +16,6 @@
 //     GoRoute(path: '/files',     builder: (_, __) => const FilesScreen()),
 //     GoRoute(path: '/profile',   builder: (_, __) => const ProfileScreen()),
 //     GoRoute(path: '/chat/:id',  builder: (_, s) => ChatScreen(chatId: s.pathParameters['id']!)),
-//     GoRoute(path: '/call/:id',  builder: (_, s) => VideoCallScreen(peerId: s.pathParameters['id']!)),
+//     GoRoute(path: '/call/:id',  builder: (_, s) => VoiceCallScreen(peerId: s.pathParameters['id']!)),
 //   ]),
 // ]);

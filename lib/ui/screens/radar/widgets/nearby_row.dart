@@ -14,10 +14,10 @@ class NearbyRow extends StatelessWidget {
   String _relativeTime() {
     final diff = DateTime.now().millisecondsSinceEpoch - profile.lastSeen;
     final secs = diff ~/ 1000;
-    if (secs < 60) return 'just now';
+    if (secs < 60) return 'только что';
     final mins = secs ~/ 60;
-    if (mins < 60) return '${mins}m ago';
-    return '${mins ~/ 60}h ago';
+    if (mins < 60) return '$mins мин назад';
+    return '${mins ~/ 60} ч назад';
   }
 
   @override
@@ -67,7 +67,7 @@ class NearbyRow extends StatelessWidget {
                                 color: kWarn.withValues(alpha: 0.5)),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const MonoText('NEW',
+                          child: const MonoText('НОВ',
                               fontSize: 9, color: kWarn),
                         ),
                     ],
@@ -82,7 +82,7 @@ class NearbyRow extends StatelessWidget {
                           color: kGood.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(3),
                         ),
-                        child: const MonoText('NEARBY',
+                        child: const MonoText('РЯДОМ',
                             fontSize: 9, color: kGood),
                       ),
                       const SizedBox(width: 6),

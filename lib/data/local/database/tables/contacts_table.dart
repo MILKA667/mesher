@@ -6,7 +6,7 @@ class Contacts extends Table {
   TextColumn get name => text()();
   TextColumn get nodeId => text()();
   BlobColumn get publicKey => blob()();
-  IntColumn get mode => integer().withDefault(const Constant(1))(); // ConnectionMode.index
+  IntColumn get mode => integer().withDefault(const Constant(0))(); // ConnectionMode.index
   IntColumn get signalLevel => integer().withDefault(const Constant(0))();
   BoolColumn get isOnline => boolean().withDefault(const Constant(false))();
   IntColumn get distanceMeters => integer().nullable()();

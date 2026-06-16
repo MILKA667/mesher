@@ -6,8 +6,6 @@ class AppConstants {
 
   // MethodChannel names
   static const chBluetoothName = 'meshlink/bluetooth';
-  static const chWifiDirectName = 'meshlink/wifidirect';
-  static const chHotspotName = 'meshlink/hotspot';
 
   // Scan / connection
   static const maxScanRadiusMeters = 120;

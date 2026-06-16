@@ -4,7 +4,6 @@ import 'dart:typed_data';
 
 import '../../crypto/key_manager.dart';
 import '../../data/local/secure_storage.dart';
-import '../../domain/models/contact.dart';
 import '../../domain/models/peer.dart';
 import '../../domain/models/user_profile.dart';
 import '../../network/protocol/packet.dart';
@@ -126,17 +125,11 @@ class DiscoveryServiceImpl implements DiscoveryService {
   }
 
   void _onTransportPeer(Peer peer) {
-    // For BT the advertised nodeId IS the crypto-derived userId.
-    if (peer.mode == ConnectionMode.bluetooth) {
-      _nodeToUser[peer.nodeId] = peer.nodeId;
-    }
+    // BT advertises the crypto-derived userId directly.
+    _nodeToUser[peer.nodeId] = peer.nodeId;
+    _upsertTransportData(userId: peer.nodeId, peer: peer);
 
-    final userId = _nodeToUser[peer.nodeId];
-    if (userId != null) {
-      _upsertTransportData(userId: userId, peer: peer);
-    }
-
-    // Send our own profile packet so the remote learns our userId + nickname.
+    // Send our own profile packet so the remote learns our nickname/avatar.
     _sendOwnProfile(peer.nodeId);
   }
 

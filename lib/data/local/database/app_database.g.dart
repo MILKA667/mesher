@@ -55,7 +55,7 @@ class $ContactsTable extends Contacts
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(1),
+    defaultValue: const Constant(0),
   );
   static const VerificationMeta _signalLevelMeta = const VerificationMeta(
     'signalLevel',
@@ -2417,6 +2417,370 @@ class FileTransfersCompanion extends UpdateCompanion<FileTransferRow> {
   }
 }
 
+class $ReactionsTable extends Reactions
+    with TableInfo<$ReactionsTable, ReactionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _messageIdMeta = const VerificationMeta(
+    'messageId',
+  );
+  @override
+  late final GeneratedColumn<String> messageId = GeneratedColumn<String>(
+    'message_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _chatIdMeta = const VerificationMeta('chatId');
+  @override
+  late final GeneratedColumn<String> chatId = GeneratedColumn<String>(
+    'chat_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emojiMeta = const VerificationMeta('emoji');
+  @override
+  late final GeneratedColumn<String> emoji = GeneratedColumn<String>(
+    'emoji',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    messageId,
+    chatId,
+    userId,
+    emoji,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reactions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReactionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('message_id')) {
+      context.handle(
+        _messageIdMeta,
+        messageId.isAcceptableOrUnknown(data['message_id']!, _messageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageIdMeta);
+    }
+    if (data.containsKey('chat_id')) {
+      context.handle(
+        _chatIdMeta,
+        chatId.isAcceptableOrUnknown(data['chat_id']!, _chatIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_chatIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('emoji')) {
+      context.handle(
+        _emojiMeta,
+        emoji.isAcceptableOrUnknown(data['emoji']!, _emojiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emojiMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {messageId, userId, emoji};
+  @override
+  ReactionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReactionRow(
+      messageId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}message_id'],
+          )!,
+      chatId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}chat_id'],
+          )!,
+      userId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}user_id'],
+          )!,
+      emoji:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}emoji'],
+          )!,
+      createdAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}created_at'],
+          )!,
+    );
+  }
+
+  @override
+  $ReactionsTable createAlias(String alias) {
+    return $ReactionsTable(attachedDatabase, alias);
+  }
+}
+
+class ReactionRow extends DataClass implements Insertable<ReactionRow> {
+  final String messageId;
+  final String chatId;
+  final String userId;
+  final String emoji;
+  final DateTime createdAt;
+  const ReactionRow({
+    required this.messageId,
+    required this.chatId,
+    required this.userId,
+    required this.emoji,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['message_id'] = Variable<String>(messageId);
+    map['chat_id'] = Variable<String>(chatId);
+    map['user_id'] = Variable<String>(userId);
+    map['emoji'] = Variable<String>(emoji);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ReactionsCompanion toCompanion(bool nullToAbsent) {
+    return ReactionsCompanion(
+      messageId: Value(messageId),
+      chatId: Value(chatId),
+      userId: Value(userId),
+      emoji: Value(emoji),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ReactionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReactionRow(
+      messageId: serializer.fromJson<String>(json['messageId']),
+      chatId: serializer.fromJson<String>(json['chatId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      emoji: serializer.fromJson<String>(json['emoji']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'messageId': serializer.toJson<String>(messageId),
+      'chatId': serializer.toJson<String>(chatId),
+      'userId': serializer.toJson<String>(userId),
+      'emoji': serializer.toJson<String>(emoji),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ReactionRow copyWith({
+    String? messageId,
+    String? chatId,
+    String? userId,
+    String? emoji,
+    DateTime? createdAt,
+  }) => ReactionRow(
+    messageId: messageId ?? this.messageId,
+    chatId: chatId ?? this.chatId,
+    userId: userId ?? this.userId,
+    emoji: emoji ?? this.emoji,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ReactionRow copyWithCompanion(ReactionsCompanion data) {
+    return ReactionRow(
+      messageId: data.messageId.present ? data.messageId.value : this.messageId,
+      chatId: data.chatId.present ? data.chatId.value : this.chatId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      emoji: data.emoji.present ? data.emoji.value : this.emoji,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionRow(')
+          ..write('messageId: $messageId, ')
+          ..write('chatId: $chatId, ')
+          ..write('userId: $userId, ')
+          ..write('emoji: $emoji, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(messageId, chatId, userId, emoji, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReactionRow &&
+          other.messageId == this.messageId &&
+          other.chatId == this.chatId &&
+          other.userId == this.userId &&
+          other.emoji == this.emoji &&
+          other.createdAt == this.createdAt);
+}
+
+class ReactionsCompanion extends UpdateCompanion<ReactionRow> {
+  final Value<String> messageId;
+  final Value<String> chatId;
+  final Value<String> userId;
+  final Value<String> emoji;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ReactionsCompanion({
+    this.messageId = const Value.absent(),
+    this.chatId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.emoji = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReactionsCompanion.insert({
+    required String messageId,
+    required String chatId,
+    required String userId,
+    required String emoji,
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : messageId = Value(messageId),
+       chatId = Value(chatId),
+       userId = Value(userId),
+       emoji = Value(emoji);
+  static Insertable<ReactionRow> custom({
+    Expression<String>? messageId,
+    Expression<String>? chatId,
+    Expression<String>? userId,
+    Expression<String>? emoji,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (messageId != null) 'message_id': messageId,
+      if (chatId != null) 'chat_id': chatId,
+      if (userId != null) 'user_id': userId,
+      if (emoji != null) 'emoji': emoji,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReactionsCompanion copyWith({
+    Value<String>? messageId,
+    Value<String>? chatId,
+    Value<String>? userId,
+    Value<String>? emoji,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ReactionsCompanion(
+      messageId: messageId ?? this.messageId,
+      chatId: chatId ?? this.chatId,
+      userId: userId ?? this.userId,
+      emoji: emoji ?? this.emoji,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (messageId.present) {
+      map['message_id'] = Variable<String>(messageId.value);
+    }
+    if (chatId.present) {
+      map['chat_id'] = Variable<String>(chatId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (emoji.present) {
+      map['emoji'] = Variable<String>(emoji.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionsCompanion(')
+          ..write('messageId: $messageId, ')
+          ..write('chatId: $chatId, ')
+          ..write('userId: $userId, ')
+          ..write('emoji: $emoji, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2424,6 +2788,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ChatsTable chats = $ChatsTable(this);
   late final $MessagesTable messages = $MessagesTable(this);
   late final $FileTransfersTable fileTransfers = $FileTransfersTable(this);
+  late final $ReactionsTable reactions = $ReactionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2433,6 +2798,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     chats,
     messages,
     fileTransfers,
+    reactions,
   ];
 }
 
@@ -3621,6 +3987,213 @@ typedef $$FileTransfersTableProcessedTableManager =
       FileTransferRow,
       PrefetchHooks Function()
     >;
+typedef $$ReactionsTableCreateCompanionBuilder =
+    ReactionsCompanion Function({
+      required String messageId,
+      required String chatId,
+      required String userId,
+      required String emoji,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$ReactionsTableUpdateCompanionBuilder =
+    ReactionsCompanion Function({
+      Value<String> messageId,
+      Value<String> chatId,
+      Value<String> userId,
+      Value<String> emoji,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$ReactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReactionsTable> {
+  $$ReactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get messageId => $composableBuilder(
+    column: $table.messageId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get chatId => $composableBuilder(
+    column: $table.chatId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReactionsTable> {
+  $$ReactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get messageId => $composableBuilder(
+    column: $table.messageId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get chatId => $composableBuilder(
+    column: $table.chatId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReactionsTable> {
+  $$ReactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get messageId =>
+      $composableBuilder(column: $table.messageId, builder: (column) => column);
+
+  GeneratedColumn<String> get chatId =>
+      $composableBuilder(column: $table.chatId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get emoji =>
+      $composableBuilder(column: $table.emoji, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ReactionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReactionsTable,
+          ReactionRow,
+          $$ReactionsTableFilterComposer,
+          $$ReactionsTableOrderingComposer,
+          $$ReactionsTableAnnotationComposer,
+          $$ReactionsTableCreateCompanionBuilder,
+          $$ReactionsTableUpdateCompanionBuilder,
+          (
+            ReactionRow,
+            BaseReferences<_$AppDatabase, $ReactionsTable, ReactionRow>,
+          ),
+          ReactionRow,
+          PrefetchHooks Function()
+        > {
+  $$ReactionsTableTableManager(_$AppDatabase db, $ReactionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$ReactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () => $$ReactionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$ReactionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> messageId = const Value.absent(),
+                Value<String> chatId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> emoji = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionsCompanion(
+                messageId: messageId,
+                chatId: chatId,
+                userId: userId,
+                emoji: emoji,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String messageId,
+                required String chatId,
+                required String userId,
+                required String emoji,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionsCompanion.insert(
+                messageId: messageId,
+                chatId: chatId,
+                userId: userId,
+                emoji: emoji,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReactionsTable,
+      ReactionRow,
+      $$ReactionsTableFilterComposer,
+      $$ReactionsTableOrderingComposer,
+      $$ReactionsTableAnnotationComposer,
+      $$ReactionsTableCreateCompanionBuilder,
+      $$ReactionsTableUpdateCompanionBuilder,
+      (
+        ReactionRow,
+        BaseReferences<_$AppDatabase, $ReactionsTable, ReactionRow>,
+      ),
+      ReactionRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3633,4 +4206,6 @@ class $AppDatabaseManager {
       $$MessagesTableTableManager(_db, _db.messages);
   $$FileTransfersTableTableManager get fileTransfers =>
       $$FileTransfersTableTableManager(_db, _db.fileTransfers);
+  $$ReactionsTableTableManager get reactions =>
+      $$ReactionsTableTableManager(_db, _db.reactions);
 }

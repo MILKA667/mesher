@@ -8,24 +8,21 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import com.example.mesher.platform.bluetooth.BluetoothChannel
-import com.example.mesher.platform.wifidirect.WifiDirectChannel
-import com.example.mesher.platform.hotspot.HotspotChannel
 import com.example.mesher.platform.foreground.ForegroundChannel
+import com.example.mesher.platform.voice.VoiceChannel
 
 class MainActivity : FlutterActivity() {
 
     private var bluetoothChannel: BluetoothChannel? = null
-    private var wifiDirectChannel: WifiDirectChannel? = null
-    private var hotspotChannel: HotspotChannel? = null
     private var foregroundChannel: ForegroundChannel? = null
+    private var voiceChannel: VoiceChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         bluetoothChannel  = BluetoothChannel(this, messenger)
-        wifiDirectChannel = WifiDirectChannel(this, messenger)
-        hotspotChannel    = HotspotChannel(this, messenger)
         foregroundChannel = ForegroundChannel(this, messenger)
+        voiceChannel      = VoiceChannel(this, messenger)
         requestMeshPermissions()
     }
 
@@ -39,13 +36,9 @@ class MainActivity : FlutterActivity() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            perms += Manifest.permission.NEARBY_WIFI_DEVICES
             perms += Manifest.permission.POST_NOTIFICATIONS
         }
 
-        // ACCESS_FINE_LOCATION needed for WiFi Direct on all Android versions
-        perms += Manifest.permission.ACCESS_FINE_LOCATION
-        perms += Manifest.permission.CAMERA
         perms += Manifest.permission.RECORD_AUDIO
 
         val needed = perms.filter {
@@ -58,9 +51,8 @@ class MainActivity : FlutterActivity() {
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         bluetoothChannel?.dispose()
-        wifiDirectChannel?.dispose()
-        hotspotChannel?.dispose()
         foregroundChannel?.dispose()
+        voiceChannel?.dispose()
         super.cleanUpFlutterEngine(flutterEngine)
     }
 

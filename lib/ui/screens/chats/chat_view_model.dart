@@ -39,7 +39,7 @@ class ChatViewModel {
   final MessageStatus? lastMessageStatus;
 
   static ChatViewModel fromChat(Chat chat, {Contact? contact}) {
-    final mode = contact?.mode ?? ConnectionMode.wifi;
+    final mode = contact?.mode ?? ConnectionMode.bluetooth;
     final signal = contact?.signalLevel ?? 0;
     final online = contact?.isOnline ?? false;
     final nodeId = contact != null

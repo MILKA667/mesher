@@ -11,35 +11,18 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
-    <!-- ── WiFi Direct ── -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
-        android:usesPermissionFlags="neverForLocation" />
-
-    <!-- ── Hotspot ── -->
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
     <!-- ── Foreground service ── -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- ── Camera / Mic (WebRTC) ── -->
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- ── Mic (voice calls) ── -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <!-- ── Network (WebRTC STUN/TURN) ── -->
-    <uses-permission android:name="android.permission.INTERNET" />
-
     <!-- ── Hardware features ── -->
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
-    <uses-feature android:name="android.hardware.wifi.direct" android:required="false" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
     <application
         android:label="mesher"
@@ -63,7 +46,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Foreground service для BT/WiFi scan в фоне -->
+        <!-- Foreground service для BLE scan в фоне -->
         <service
             android:name=".platform.foreground.MeshForegroundService"
             android:foregroundServiceType="connectedDevice"

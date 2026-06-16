@@ -68,5 +68,5 @@ final chatsNotifierProvider =
 // Helper for building Contact-less ChatViewModel from domain contact
 extension ContactModeHelper on Contact {
   static ConnectionMode modeOf(Contact? c) =>
-      c?.mode ?? ConnectionMode.wifi;
+      c?.mode ?? ConnectionMode.bluetooth;
 }

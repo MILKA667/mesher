@@ -1,5 +1,5 @@
 name: mesher
-description: "Offline P2P mesh messenger — Bluetooth, WiFi Direct, Hotspot."
+description: "Offline P2P mesh messenger — Bluetooth Low Energy."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -24,10 +24,7 @@ dependencies:
   # Cryptography (pure Dart — Ed25519, X25519, AES-256-GCM)
   cryptography: ^2.7.0
 
-  # Video calls
-  flutter_webrtc: ^0.12.5
-
-  # Foreground service (BLE/WiFi scan в фоне)
+  # Foreground service (BLE scan в фоне)
   flutter_foreground_task: ^8.13.0
 
   # File paths

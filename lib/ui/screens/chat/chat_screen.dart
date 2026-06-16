@@ -6,7 +6,7 @@ import '../../../network/protocol/packet.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/mono_text.dart';
 import '../../widgets/top_bar.dart';
-import '../call/video_call_screen.dart';
+import '../call/voice_call_screen.dart';
 import 'chat_controller.dart';
 import 'widgets/composer.dart';
 import 'widgets/file_bubble.dart';
@@ -66,7 +66,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          _CallButton(chatId: widget.chatId, contactName: widget.contactName),
+          _VoiceCallButton(chatId: widget.chatId, contactName: widget.contactName),
         ],
       ),
       body: Column(
@@ -107,22 +107,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-class _CallButton extends ConsumerWidget {
-  const _CallButton({required this.chatId, this.contactName});
+class _VoiceCallButton extends ConsumerWidget {
+  const _VoiceCallButton({required this.chatId, this.contactName});
   final String chatId;
   final String? contactName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
+      tooltip: 'Голосовой звонок',
       icon: const Icon(
-        Icons.videocam_outlined,
+        Icons.call_outlined,
         color: kAccent,
         size: 22,
       ),
       onPressed: () {
         Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => VideoCallScreen(
+          builder: (_) => VoiceCallScreen(
             peerId: chatId,
             peerName: contactName,
             isIncoming: false,
@@ -146,10 +147,10 @@ class _EmptyChat extends StatelessWidget {
           Icon(Icons.chat_bubble_outline,
               size: 32, color: kAccent.withValues(alpha: 0.3)),
           const SizedBox(height: 12),
-          MonoText('MESH CONNECTED', fontSize: 10, color: kTextMuted),
+          MonoText('ПОДКЛЮЧЕНО', fontSize: 10, color: kTextMuted),
           const SizedBox(height: 6),
           Text(
-            'Начните переписку с ${contactName ?? 'пиром'}',
+            'Начни переписку с ${contactName ?? 'пиром'}',
             style: const TextStyle(fontSize: 12, color: kTextDim),
           ),
         ],

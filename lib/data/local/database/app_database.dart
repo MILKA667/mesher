@@ -4,19 +4,30 @@ import '../../../domain/models/chat.dart' as domain;
 import '../../../domain/models/contact.dart' as domain;
 import '../../../domain/models/message.dart' as domain;
 import '../../../domain/models/file_transfer.dart' as domain;
+import '../../../domain/models/reaction.dart' as domain;
 import 'tables/contacts_table.dart';
 import 'tables/chats_table.dart';
 import 'tables/messages_table.dart';
 import 'tables/file_transfers_table.dart';
+import 'tables/reactions_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Contacts, Chats, Messages, FileTransfers])
+@DriftDatabase(tables: [Contacts, Chats, Messages, FileTransfers, Reactions])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(reactions);
+          }
+        },
+      );
 
   static QueryExecutor _openConnection() =>
       driftDatabase(name: 'mesher_db');
@@ -94,6 +105,26 @@ class AppDatabase extends _$AppDatabase {
         updates: {messages},
       );
 
+  // ── Reactions ─────────────────────────────────────────────────────────────
+
+  Stream<List<ReactionRow>> watchReactionsForChat(String chatId) =>
+      (select(reactions)..where((t) => t.chatId.equals(chatId))).watch();
+
+  Future<void> upsertReaction(ReactionsCompanion r) =>
+      into(reactions).insertOnConflictUpdate(r);
+
+  Future<void> deleteReaction({
+    required String messageId,
+    required String userId,
+    required String emoji,
+  }) =>
+      (delete(reactions)
+            ..where((t) =>
+                t.messageId.equals(messageId) &
+                t.userId.equals(userId) &
+                t.emoji.equals(emoji)))
+          .go();
+
   // ── FileTransfers ─────────────────────────────────────────────────────────
 
   Stream<List<FileTransferRow>> watchTransfers() =>
@@ -111,7 +142,11 @@ class AppDatabase extends _$AppDatabase {
         id: r.id,
         name: r.name,
         nodeId: r.nodeId,
-        mode: domain.ConnectionMode.values[r.mode],
+        // Old rows may persist legacy WiFi/Hotspot indices (1, 2); BT is the
+        // only supported transport now, so collapse anything out-of-range.
+        mode: r.mode < domain.ConnectionMode.values.length
+            ? domain.ConnectionMode.values[r.mode]
+            : domain.ConnectionMode.bluetooth,
         signalLevel: r.signalLevel,
         isOnline: r.isOnline,
         distanceMeters: r.distanceMeters,
@@ -140,6 +175,14 @@ class AppDatabase extends _$AppDatabase {
         fileSizeBytes: r.fileSizeBytes,
         durationSeconds: r.durationSeconds,
         status: domain.MessageStatus.values[r.status],
+      );
+
+  static domain.Reaction reactionFromRow(ReactionRow r) => domain.Reaction(
+        messageId: r.messageId,
+        chatId: r.chatId,
+        userId: r.userId,
+        emoji: r.emoji,
+        createdAt: r.createdAt,
       );
 
   static domain.FileTransfer transferFromRow(FileTransferRow r) =>

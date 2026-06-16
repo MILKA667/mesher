@@ -44,7 +44,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(entry == null
           ? 'Не удалось добавить файл'
-          : 'Файл «${entry.name}» добавлен в swarm'),
+          : 'Файл «${entry.name}» теперь раздаётся'),
       backgroundColor: const Color(0xFF10161C),
     ));
   }
@@ -67,7 +67,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
 
     return Scaffold(
       backgroundColor: kBg,
-      appBar: const TopBar(title: 'Swarm'),
+      appBar: const TopBar(title: 'Файлы'),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: kAccent,
         foregroundColor: const Color(0xFF001218),
@@ -85,24 +85,24 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
             child: Row(
               children: [
-                MeshChip('ALL · ${all.length}',
+                MeshChip('ВСЕ · ${all.length}',
                     active: _filter == 0,
                     onTap: () => setState(() => _filter = 0)),
                 const SizedBox(width: 8),
                 MeshChip(
-                  'AVAILABLE · $available',
+                  'ДОСТУПНО · $available',
                   active: _filter == 1,
                   onTap: () => setState(() => _filter = 1),
                 ),
                 const SizedBox(width: 8),
                 MeshChip(
-                  'DOWNLOADING · $downloading',
+                  'ЗАГРУЖАЕТСЯ · $downloading',
                   active: _filter == 2,
                   onTap: () => setState(() => _filter = 2),
                 ),
                 const SizedBox(width: 8),
                 MeshChip(
-                  'SHARING · $sharing',
+                  'Я РАЗДАЮ · $sharing',
                   active: _filter == 3,
                   onTap: () => setState(() => _filter = 3),
                 ),
@@ -142,12 +142,12 @@ class _EmptySwarm extends StatelessWidget {
           Icon(Icons.share_outlined,
               size: 48, color: kAccent.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
-          const MonoText('SWARM ПУСТ', fontSize: 11, color: kTextMuted),
+          const MonoText('ФАЙЛОВ ПОКА НЕТ', fontSize: 11, color: kTextMuted),
           const SizedBox(height: 6),
           const Text(
-            'Подключитесь к пирам через Radar.\n'
-            'Любой файл, который раздаёте, появится здесь и\n'
-            'станет доступен всей mesh-сети.',
+            'Подключайся к пирам через вкладку «Рядом».\n'
+            'Файлы, которыми ты делишься, появятся здесь и\n'
+            'станут доступны другим в mesh-сети.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: kTextDim, height: 1.5),
           ),
@@ -171,11 +171,11 @@ class _SwarmCard extends ConsumerWidget {
 
   String get _stateLabel {
     if (entry.isLocal) {
-      return entry.downloadProgress == 100 ? 'SHARING' : 'UPLOADING';
+      return entry.downloadProgress == 100 ? 'РАЗДАЮ' : 'ОТПРАВКА';
     }
-    if (entry.downloadProgress == 100) return 'COMPLETE';
-    if (entry.downloadProgress > 0) return 'DOWNLOADING';
-    return 'AVAILABLE';
+    if (entry.downloadProgress == 100) return 'ГОТОВО';
+    if (entry.downloadProgress > 0) return 'ЗАГРУЗКА';
+    return 'ДОСТУПЕН';
   }
 
   bool get _canDownload =>
@@ -234,7 +234,7 @@ class _SwarmCard extends ConsumerWidget {
                     const SizedBox(height: 3),
                     MonoText(
                       '${formatBytes(entry.sizeBytes)} · '
-                      '${entry.peerCount} PEERS · #$hash',
+                      '${entry.peerCount} пиров · #$hash',
                       fontSize: 10,
                     ),
                     const SizedBox(height: 6),
@@ -260,7 +260,7 @@ class _SwarmCard extends ConsumerWidget {
               if (_canDownload)
                 IconButton(
                   icon: const Icon(Icons.download, color: kAccent),
-                  tooltip: 'Скачать из swarm',
+                  tooltip: 'Скачать файл',
                   onPressed: () {
                     ref
                         .read(swarmServiceProvider)
@@ -284,7 +284,7 @@ class _SwarmCard extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                MonoText('${entry.peerCount} SEEDERS', fontSize: 10),
+                MonoText('${entry.peerCount} сидеров', fontSize: 10),
                 MonoText('${entry.downloadProgress}%', fontSize: 10),
               ],
             ),

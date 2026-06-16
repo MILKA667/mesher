@@ -60,7 +60,7 @@ class NotificationService with WidgetsBindingObserver {
     await android?.createNotificationChannel(const AndroidNotificationChannel(
       'calls',
       'Входящие звонки',
-      description: 'Видеозвонки от пиров mesh-сети',
+      description: 'Голосовые звонки от пиров mesh-сети',
       importance: Importance.max,
     ));
     await android?.createNotificationChannel(const AndroidNotificationChannel(
@@ -107,7 +107,7 @@ class NotificationService with WidgetsBindingObserver {
       android: AndroidNotificationDetails(
         'calls',
         'Входящие звонки',
-        channelDescription: 'Видеозвонки от пиров mesh-сети',
+        channelDescription: 'Голосовые звонки от пиров mesh-сети',
         importance: Importance.max,
         priority: Priority.max,
         category: AndroidNotificationCategory.call,
@@ -118,7 +118,7 @@ class NotificationService with WidgetsBindingObserver {
     );
     await _plugin.show(
       _callNotificationId,
-      'Входящий видеозвонок',
+      'Входящий звонок',
       peerName,
       details,
       payload: 'call:$peerId',

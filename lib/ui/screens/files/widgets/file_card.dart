@@ -17,11 +17,11 @@ class FileCard extends StatelessWidget {
       };
 
   String get _stateLabel => switch (file.state) {
-        TransferState.active => 'DOWNLOADING',
-        TransferState.seeding => 'SEEDING',
-        TransferState.done => 'COMPLETE',
-        TransferState.queued => 'QUEUED',
-        TransferState.error => 'ERROR',
+        TransferState.active => 'ЗАГРУЗКА',
+        TransferState.seeding => 'РАЗДАЮ',
+        TransferState.done => 'ГОТОВО',
+        TransferState.queued => 'В ОЧЕРЕДИ',
+        TransferState.error => 'ОШИБКА',
       };
 
   static _FileKind _kindFromName(String name) {
@@ -85,7 +85,7 @@ class FileCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     MonoText(
-                      '${formatBytes(file.sizeBytes)} · ${file.peerCount} PEERS · #$hash',
+                      '${formatBytes(file.sizeBytes)} · ${file.peerCount} пиров · #$hash',
                       fontSize: 10,
                     ),
                     const SizedBox(height: 6),

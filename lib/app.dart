@@ -2,12 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/colors.dart';
-import 'domain/models/contact.dart';
 import 'main.dart' show rootNavigatorKey;
-import 'services/call_manager.dart';
 import 'services/foreground_service.dart';
+import 'services/voice_call_service.dart';
 import 'ui/providers/app_providers.dart';
-import 'ui/screens/call/video_call_screen.dart';
+import 'ui/screens/call/voice_call_screen.dart';
 import 'ui/screens/chat/chat_screen.dart';
 import 'ui/widgets/bottom_nav.dart';
 import 'ui/screens/chats/chats_screen.dart';
@@ -30,7 +29,7 @@ class _MeshAppState extends ConsumerState<MeshApp> {
     ProfileScreen(),
   ];
 
-  StreamSubscription? _incomingCallSub;
+  StreamSubscription? _incomingVoiceCallSub;
   StreamSubscription? _notificationTapSub;
 
   @override
@@ -41,7 +40,7 @@ class _MeshAppState extends ConsumerState<MeshApp> {
 
   @override
   void dispose() {
-    _incomingCallSub?.cancel();
+    _incomingVoiceCallSub?.cancel();
     _notificationTapSub?.cancel();
     super.dispose();
   }
@@ -57,21 +56,15 @@ class _MeshAppState extends ConsumerState<MeshApp> {
         'Node-${km.nodeId.substring(0, 4)}';
 
     await ref.read(btChannelProvider).setProfile(nodeIdBytes, nickname);
-    await ref.read(wifiChannelProvider).setNodeId(nodeIdBytes);
 
     await ref.read(meshServiceProvider).start();
-
-    // Stop the transport that isn't selected (default = BT).
-    if (ref.read(activeTransportProvider) == ConnectionMode.bluetooth) {
-      await ref.read(wifiTransportProvider).stopScan();
-    } else {
-      await ref.read(btTransportProvider).stopScan();
-    }
 
     await ref.read(discoveryServiceProvider).start();
     ref.read(incomingMessageHandlerProvider);
     // Boot swarm (file sharing) listener.
     ref.read(swarmServiceProvider);
+    // Boot reactions listener.
+    ref.read(reactionsServiceProvider);
 
     final notifications = ref.read(notificationServiceProvider);
     notifications.bindLifecycle();
@@ -82,15 +75,16 @@ class _MeshAppState extends ConsumerState<MeshApp> {
       _openChat(chatId);
     });
 
-    final callManager = ref.read(callManagerProvider);
-    _incomingCallSub = callManager.incomingCallStream.listen((info) {
+    final voiceService = ref.read(voiceCallServiceProvider);
+    _incomingVoiceCallSub = voiceService.incomingCallStream.listen((info) {
       if (!mounted) return;
-      notifications.showCall(peerId: info.peerId, peerName: info.peerName ?? info.peerId);
-      _showIncomingCall(info);
+      notifications.showCall(
+          peerId: info.peerId, peerName: info.peerName ?? info.peerId);
+      _showIncomingVoiceCall(info);
     });
 
     try {
-      await AndroidForegroundService().start(notificationTitle: 'MeshLink active');
+      await AndroidForegroundService().start(notificationTitle: 'MeshLink — в эфире');
     } catch (_) {}
   }
 
@@ -109,7 +103,7 @@ class _MeshAppState extends ConsumerState<MeshApp> {
     ));
   }
 
-  void _showIncomingCall(IncomingCallInfo info) {
+  void _showIncomingVoiceCall(VoiceCallInfo info) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: kCard,
@@ -118,13 +112,13 @@ class _MeshAppState extends ConsumerState<MeshApp> {
       ),
       isDismissible: false,
       enableDrag: false,
-      builder: (ctx) => _IncomingCallSheet(
+      builder: (ctx) => _IncomingVoiceCallSheet(
         info: info,
         onAccept: () {
           ref.read(notificationServiceProvider).cancelCall();
           Navigator.of(ctx).pop();
           Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => VideoCallScreen(
+            builder: (_) => VoiceCallScreen(
               peerId: info.peerId,
               peerName: info.peerName,
               isIncoming: true,
@@ -133,7 +127,7 @@ class _MeshAppState extends ConsumerState<MeshApp> {
         },
         onReject: () {
           ref.read(notificationServiceProvider).cancelCall();
-          ref.read(callManagerProvider).endCall();
+          ref.read(voiceCallServiceProvider).rejectCall();
           Navigator.of(ctx).pop();
         },
       ),
@@ -156,14 +150,14 @@ class _MeshAppState extends ConsumerState<MeshApp> {
   }
 }
 
-class _IncomingCallSheet extends StatelessWidget {
-  const _IncomingCallSheet({
+class _IncomingVoiceCallSheet extends StatelessWidget {
+  const _IncomingVoiceCallSheet({
     required this.info,
     required this.onAccept,
     required this.onReject,
   });
 
-  final IncomingCallInfo info;
+  final VoiceCallInfo info;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -182,7 +176,7 @@ class _IncomingCallSheet extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: kAccent.withValues(alpha: 0.4)),
             ),
-            child: const Icon(Icons.videocam, color: kAccent, size: 36),
+            child: const Icon(Icons.call, color: kAccent, size: 32),
           ),
           const SizedBox(height: 16),
           Text(
@@ -196,7 +190,7 @@ class _IncomingCallSheet extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Входящий видеозвонок',
+            'Входящий голосовой звонок',
             style: TextStyle(color: kTextMuted, fontSize: 12),
           ),
           const SizedBox(height: 36),
@@ -210,7 +204,7 @@ class _IncomingCallSheet extends StatelessWidget {
                 onTap: onReject,
               ),
               _CallAction(
-                icon: Icons.videocam,
+                icon: Icons.call,
                 color: kGood,
                 label: 'Принять',
                 onTap: onAccept,

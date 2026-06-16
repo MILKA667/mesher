@@ -94,7 +94,7 @@ class BleGattClient(
     fun send(data: ByteArray, callback: (Boolean) -> Unit) {
         mainHandler.post {
             if (!isConnected || rxCharacteristic == null) { callback(false); return@post }
-            // Prepend 4-byte big-endian length header (matches WifiDirectSocket framing).
+            // Prepend 4-byte big-endian length header so the receiver can reassemble.
             val len = data.size
             val framed = ByteArray(4 + len).also { buf ->
                 buf[0] = (len shr 24).toByte()

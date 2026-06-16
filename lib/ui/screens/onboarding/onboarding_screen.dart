@@ -167,7 +167,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const Spacer(),
               Center(
                 child: const MonoText(
-                  'END-TO-END ENCRYPTED · NO SERVERS',
+                  'СКВОЗНОЕ ШИФРОВАНИЕ · БЕЗ СЕРВЕРОВ',
                   fontSize: 9,
                   color: kTextMuted,
                 ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
-import '../../../domain/models/contact.dart';
 import '../../../domain/models/user_profile.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/mono_text.dart';
@@ -21,7 +20,7 @@ class ChatsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: kBg,
-      appBar: const TopBar(title: 'Mesh'),
+      appBar: const TopBar(title: 'Чаты'),
       body: Stack(
         children: [
           ListView(
@@ -74,15 +73,11 @@ class _MeshStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bt = nearby.where((u) => u.seenVia.contains(ConnectionMode.bluetooth)).length;
-    final wifi = nearby.where((u) => u.seenVia.contains(ConnectionMode.wifi)).length;
+    final bt = nearby.length;
     final isActive = nearby.isNotEmpty;
 
-    final parts = <String>[
-      if (bt > 0) '$bt BT',
-      if (wifi > 0) '$wifi WiFi',
-    ];
-    final subtitle = isActive ? parts.join(' · ') : 'Scanning…';
+    final subtitle =
+        isActive ? '$bt в эфире' : 'Ищем пиров…';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -110,7 +105,7 @@ class _MeshStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isActive ? 'Local mesh active' : 'Searching for peers…',
+                  isActive ? 'Mesh-сеть активна' : 'Сканирование…',
                   style: const TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w600, color: kText),
                 ),
@@ -119,7 +114,7 @@ class _MeshStrip extends StatelessWidget {
               ],
             ),
           ),
-          SmallChip(isActive ? 'ON' : 'SCAN', active: isActive),
+          SmallChip(isActive ? 'ON' : 'СКАН', active: isActive),
         ],
       ),
     );
@@ -138,10 +133,10 @@ class _EmptyChats extends StatelessWidget {
           Icon(Icons.chat_bubble_outline, size: 48,
               color: kAccent.withValues(alpha: 0.25)),
           const SizedBox(height: 16),
-          const MonoText('НЕТ ЧАТОВ', fontSize: 11, color: kTextMuted),
+          const MonoText('ЧАТОВ ПОКА НЕТ', fontSize: 11, color: kTextMuted),
           const SizedBox(height: 6),
           const Text(
-            'Подключитесь к пиру через Radar\nи начните переписку',
+            'Найди пира на вкладке «Рядом»\nи начни переписку.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: kTextDim, height: 1.5),
           ),

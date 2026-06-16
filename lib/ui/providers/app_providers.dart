@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../crypto/key_manager.dart';
-import '../../domain/models/contact.dart';
 import '../../data/local/database/app_database.dart';
 import '../../data/local/file_storage.dart';
 import '../../data/local/secure_storage.dart';
@@ -12,20 +11,20 @@ import '../../data/repositories/peer_repository.dart';
 import '../../domain/models/chat.dart';
 import '../../domain/models/file_transfer.dart';
 import '../../domain/models/message.dart';
+import '../../domain/models/reaction.dart';
 import '../../domain/models/user_profile.dart';
 import '../../network/discovery/discovery_service.dart';
 import '../../network/platform/bluetooth_channel.dart';
-import '../../network/platform/wifi_direct_channel.dart';
 import '../../network/protocol/packet.dart';
 import '../../network/protocol/packet_codec.dart';
 import '../../network/routing/mesh_router.dart';
 import '../../network/transport/bluetooth_transport.dart';
-import '../../network/transport/wifi_direct_transport.dart';
-import '../../services/call_manager.dart';
 import '../../services/file_transfer_service.dart';
 import '../../services/mesh_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/reactions_service.dart';
 import '../../services/swarm_service.dart';
+import '../../services/voice_call_service.dart';
 
 // ── Infrastructure ─────────────────────────────────────────────────────────
 
@@ -48,16 +47,9 @@ final keyManagerProvider = Provider<KeyManager>((ref) {
 // ── Network ────────────────────────────────────────────────────────────────
 
 final btChannelProvider = Provider((_) => BluetoothChannel());
-final wifiChannelProvider = Provider((_) => WifiDirectChannel());
 
 final btTransportProvider = Provider((ref) {
   final t = BluetoothTransport(ref.watch(btChannelProvider));
-  ref.onDispose(t.dispose);
-  return t;
-});
-
-final wifiTransportProvider = Provider((ref) {
-  final t = WifiDirectTransport(ref.watch(wifiChannelProvider));
   ref.onDispose(t.dispose);
   return t;
 });
@@ -92,7 +84,6 @@ final meshServiceProvider = Provider<MeshService>((ref) {
     router: ref.watch(meshRouterProvider),
     transports: [
       ref.watch(btTransportProvider),
-      ref.watch(wifiTransportProvider),
     ],
   );
   ref.onDispose(service.dispose);
@@ -108,7 +99,6 @@ final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
     router: ref.watch(meshRouterProvider),
     transports: [
       ref.watch(btTransportProvider),
-      ref.watch(wifiTransportProvider),
     ],
   );
   ref.onDispose(svc.dispose);
@@ -129,15 +119,36 @@ final fileTransferServiceProvider = Provider<FileTransferService>((ref) {
   return svc;
 });
 
-// ── CallManager ────────────────────────────────────────────────────────────
+// ── ReactionsService ───────────────────────────────────────────────────────
 
-final callManagerProvider = Provider<CallManager>((ref) {
-  final manager = CallManager(
+final reactionsServiceProvider = Provider<ReactionsService>((ref) {
+  final svc = ReactionsService(
+    keys: ref.watch(keyManagerProvider),
+    router: ref.watch(meshRouterProvider),
+    db: ref.watch(appDatabaseProvider),
+  );
+  svc.bind();
+  ref.onDispose(svc.dispose);
+  return svc;
+});
+
+final chatReactionsProvider =
+    StreamProvider.family<List<Reaction>, String>((ref, chatId) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchReactionsForChat(chatId).map(
+      (rows) => rows.map(AppDatabase.reactionFromRow).toList());
+});
+
+// ── VoiceCallService (BLE-only mesh transport) ─────────────────────────────
+
+final voiceCallServiceProvider = Provider<VoiceCallService>((ref) {
+  final svc = VoiceCallService(
     keys: ref.watch(keyManagerProvider),
     router: ref.watch(meshRouterProvider),
   );
-  ref.onDispose(manager.dispose);
-  return manager;
+  svc.bind();
+  ref.onDispose(svc.dispose);
+  return svc;
 });
 
 // ── NotificationService ────────────────────────────────────────────────────
@@ -205,23 +216,17 @@ final ownProfileProvider = FutureProvider<UserProfile>((ref) async {
   );
 });
 
-// ── Active transport (only one at a time) ──────────────────────────────────
-
-final activeTransportProvider =
-    StateProvider<ConnectionMode>((_) => ConnectionMode.bluetooth);
-
 // ── Current bottom nav tab ─────────────────────────────────────────────────
 
 final currentTabProvider = StateProvider<int>((_) => 0);
 
-// ── Unified mesh packet handler (message / ack / read / call) ─────────────
+// ── Unified mesh packet handler (message / ack / read) ────────────────────
 
 final incomingMessageHandlerProvider = Provider<void>((ref) {
   final router = ref.watch(meshRouterProvider);
   final db = ref.watch(appDatabaseProvider);
   final chatRepo = ref.watch(chatRepoProvider);
   final discovery = ref.watch(discoveryServiceProvider);
-  final callManager = ref.watch(callManagerProvider);
   final notifications = ref.watch(notificationServiceProvider);
   final keys = ref.watch(keyManagerProvider);
 
@@ -287,11 +292,6 @@ final incomingMessageHandlerProvider = Provider<void>((ref) {
 
       case PacketType.messageRead:
         await db.markOutgoingMessagesRead(packet.senderId);
-
-      case PacketType.callSignal:
-        final name = await resolveName(packet.senderId);
-        await callManager.handleSignal(packet.senderId, packet.payload,
-            resolveName: () => name);
 
       default:
         break;

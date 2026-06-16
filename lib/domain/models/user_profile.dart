@@ -22,11 +22,7 @@ class UserProfile {
   final Set<ConnectionMode> seenVia;
   final bool isKnownContact;
 
-  ConnectionMode get bestTransport => seenVia.contains(ConnectionMode.wifi)
-      ? ConnectionMode.wifi
-      : seenVia.contains(ConnectionMode.hotspot)
-          ? ConnectionMode.hotspot
-          : ConnectionMode.bluetooth;
+  ConnectionMode get bestTransport => ConnectionMode.bluetooth;
 
   UserProfile copyWith({
     String? nickname,

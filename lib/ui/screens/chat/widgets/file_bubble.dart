@@ -11,7 +11,7 @@ class FileBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMe = message.isOutgoing;
-    final fileName = message.fileName ?? 'file';
+    final fileName = message.fileName ?? 'файл';
     final size = message.fileSizeBytes != null
         ? formatBytes(message.fileSizeBytes!)
         : '—';
@@ -65,7 +65,7 @@ class FileBubble extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        MonoText('$size · TORRENT', fontSize: 11),
+                        MonoText('$size · ФАЙЛ', fontSize: 11),
                       ],
                     ),
                   ),
@@ -85,7 +85,7 @@ class FileBubble extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const MonoText('COMPLETE', fontSize: 10, color: kGood),
+                  const MonoText('ГОТОВО', fontSize: 10, color: kGood),
                   MonoText(time, fontSize: 10),
                 ],
               ),

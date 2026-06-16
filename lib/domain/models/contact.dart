@@ -1,11 +1,11 @@
-enum ConnectionMode { bluetooth, wifi, hotspot }
+enum ConnectionMode { bluetooth }
 
 class Contact {
   const Contact({
     required this.id,
     required this.name,
     required this.nodeId,
-    this.mode = ConnectionMode.wifi,
+    this.mode = ConnectionMode.bluetooth,
     this.signalLevel = 0,
     this.isOnline = false,
     this.distanceMeters,

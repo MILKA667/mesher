@@ -1,7 +1,7 @@
 import '../../domain/models/contact.dart';
 import '../../domain/models/peer.dart';
 
-/// Common interface for all P2P transports (BT, WiFi Direct, Hotspot).
+/// Common interface for P2P transports (currently only Bluetooth).
 abstract class Transport {
   ConnectionMode get mode;
 

@@ -9,6 +9,7 @@ import '../../../../domain/models/message.dart';
 import '../../../providers/app_providers.dart';
 import '../../../widgets/circle_button.dart';
 import '../chat_controller.dart';
+import 'emoji_picker.dart';
 
 class Composer extends ConsumerStatefulWidget {
   const Composer({super.key, required this.chatId});
@@ -44,6 +45,21 @@ class _ComposerState extends ConsumerState<Composer> {
     await ref
         .read(chatNotifierProvider(widget.chatId).notifier)
         .sendText(text);
+  }
+
+  Future<void> _pickEmoji() async {
+    final emoji = await EmojiSheet.show(context, title: 'ВЫБЕРИ ЭМОДЗИ');
+    if (emoji == null) return;
+    final sel = _controller.selection;
+    final start = sel.isValid ? sel.start : _controller.text.length;
+    final end = sel.isValid ? sel.end : _controller.text.length;
+    final newText =
+        _controller.text.replaceRange(start, end, emoji);
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection:
+          TextSelection.collapsed(offset: start + emoji.length),
+    );
   }
 
   Future<void> _attachFile() async {
@@ -106,6 +122,12 @@ class _ComposerState extends ConsumerState<Composer> {
             onPressed: _attachFile,
             icon: const Icon(Icons.attach_file, color: kTextMuted, size: 22),
           ),
+          IconButton(
+            tooltip: 'Эмодзи',
+            onPressed: _pickEmoji,
+            icon: const Icon(Icons.emoji_emotions_outlined,
+                color: kTextMuted, size: 22),
+          ),
           Expanded(
             child: Container(
               padding:
@@ -122,7 +144,7 @@ class _ComposerState extends ConsumerState<Composer> {
                 keyboardType: TextInputType.multiline,
                 textInputAction: TextInputAction.newline,
                 decoration: const InputDecoration.collapsed(
-                  hintText: 'Message',
+                  hintText: 'Сообщение',
                   hintStyle:
                       TextStyle(fontSize: 14, color: kTextMuted),
                 ),
