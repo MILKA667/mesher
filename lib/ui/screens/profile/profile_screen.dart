@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
+import '../../../domain/models/contact.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/avatar.dart';
 import '../../widgets/mono_text.dart';
@@ -15,12 +16,12 @@ class ProfileScreen extends ConsumerWidget {
     final nodeIdAsync = ref.watch(keyManagerInitProvider);
     final nodeId = nodeIdAsync.valueOrNull ?? '——·——';
     final ownAsync = ref.watch(ownProfileProvider);
-    final nickname = ownAsync.valueOrNull?.nickname ?? 'Node-${nodeId.substring(0, 4)}';
+    final nickname =
+        ownAsync.valueOrNull?.nickname ?? 'Node-${nodeId.substring(0, 4)}';
     final usersAsync = ref.watch(nearbyUsersProvider);
     final peerCount = usersAsync.valueOrNull?.length ?? 0;
 
-    final btOn = ref.watch(btRunningProvider);
-    final wifiOn = ref.watch(wifiRunningProvider);
+    final active = ref.watch(activeTransportProvider);
 
     return Scaffold(
       backgroundColor: kBg,
@@ -54,55 +55,82 @@ class ProfileScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // Transport toggles
-          _TransportRow(
-            icon: Icons.bluetooth,
-            label: 'Bluetooth',
-            active: btOn,
-            activeColor: const Color(0xFF5AD7FF),
-            onTap: () => _toggleBt(ref, btOn),
+
+          // Transport selector label
+          const Padding(
+            padding: EdgeInsets.only(left: 2, bottom: 10),
+            child: Text(
+              'ТРАНСПОРТ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: kTextMuted,
+                letterSpacing: 1.2,
+                fontFamily: 'JetBrainsMono',
+              ),
+            ),
           ),
-          const SizedBox(height: 10),
-          _TransportRow(
-            icon: Icons.wifi,
-            label: 'WiFi Direct',
-            active: wifiOn,
-            activeColor: kGood,
-            onTap: () => _toggleWifi(ref, wifiOn),
+
+          // Transport toggle cards
+          Row(
+            children: [
+              Expanded(
+                child: _TransportCard(
+                  icon: Icons.bluetooth,
+                  label: 'Bluetooth',
+                  subtitle: 'До 50 м',
+                  active: active == ConnectionMode.bluetooth,
+                  activeColor: const Color(0xFF5AD7FF),
+                  onTap: () => _switchTo(ref, ConnectionMode.bluetooth, active),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _TransportCard(
+                  icon: Icons.wifi,
+                  label: 'WiFi Direct',
+                  subtitle: 'До 200 м',
+                  active: active == ConnectionMode.wifi,
+                  activeColor: kGood,
+                  onTap: () => _switchTo(ref, ConnectionMode.wifi, active),
+                ),
+              ),
+            ],
           ),
+
           const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Future<void> _toggleBt(WidgetRef ref, bool current) async {
-    final transport = ref.read(btTransportProvider);
-    if (current) {
-      await transport.stopScan();
-      ref.read(btRunningProvider.notifier).state = false;
-    } else {
-      await transport.startScan();
-      ref.read(btRunningProvider.notifier).state = true;
-    }
-  }
+  Future<void> _switchTo(
+    WidgetRef ref,
+    ConnectionMode next,
+    ConnectionMode current,
+  ) async {
+    if (next == current) return;
 
-  Future<void> _toggleWifi(WidgetRef ref, bool current) async {
-    final transport = ref.read(wifiTransportProvider);
-    if (current) {
-      await transport.stopScan();
-      ref.read(wifiRunningProvider.notifier).state = false;
+    final bt = ref.read(btTransportProvider);
+    final wifi = ref.read(wifiTransportProvider);
+
+    if (next == ConnectionMode.bluetooth) {
+      await wifi.stopScan();
+      await bt.startScan();
     } else {
-      await transport.startScan();
-      ref.read(wifiRunningProvider.notifier).state = true;
+      await bt.stopScan();
+      await wifi.startScan();
     }
+
+    ref.read(activeTransportProvider.notifier).state = next;
   }
 }
 
-class _TransportRow extends StatelessWidget {
-  const _TransportRow({
+class _TransportCard extends StatelessWidget {
+  const _TransportCard({
     required this.icon,
     required this.label,
+    required this.subtitle,
     required this.active,
     required this.activeColor,
     required this.onTap,
@@ -110,6 +138,7 @@ class _TransportRow extends StatelessWidget {
 
   final IconData icon;
   final String label;
+  final String subtitle;
   final bool active;
   final Color activeColor;
   final VoidCallback onTap;
@@ -118,34 +147,52 @@ class _TransportRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
-          color: kCard,
-          borderRadius: BorderRadius.circular(12),
+          color: active ? activeColor.withValues(alpha: 0.09) : kCard,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: active ? activeColor.withValues(alpha: 0.35) : kLine,
+            color: active ? activeColor.withValues(alpha: 0.5) : kLine,
+            width: active ? 1.5 : 1,
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: active ? activeColor : kTextMuted),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: active ? kText : kTextMuted,
+            Row(
+              children: [
+                Icon(icon,
+                    size: 18, color: active ? activeColor : kTextMuted),
+                const Spacer(),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: active ? activeColor : kTextDim,
+                    shape: BoxShape.circle,
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: active ? kText : kTextMuted,
               ),
             ),
-            Switch.adaptive(
-              value: active,
-              onChanged: (_) => onTap(),
-              activeThumbColor: activeColor,
-              activeTrackColor: activeColor.withValues(alpha: 0.4),
+            const SizedBox(height: 2),
+            Text(
+              active ? 'Активен' : subtitle,
+              style: TextStyle(
+                fontSize: 11,
+                color: active ? activeColor : kTextDim,
+                fontFamily: 'JetBrainsMono',
+              ),
             ),
           ],
         ),

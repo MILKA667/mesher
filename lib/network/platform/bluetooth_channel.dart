@@ -56,4 +56,9 @@ class BluetoothChannel {
   Future<void> send(String nodeId, List<int> data) =>
       _cmd.invokeMethod<void>(
           'send', {'nodeId': nodeId, 'data': Uint8List.fromList(data)});
+
+  /// Register a nodeId → MAC mapping in the Kotlin scanner so future
+  /// connect(nodeId) calls can find the BluetoothDevice without a scan event.
+  Future<void> registerPeer(String nodeId, String mac) =>
+      _cmd.invokeMethod<void>('registerPeer', {'nodeId': nodeId, 'mac': mac});
 }

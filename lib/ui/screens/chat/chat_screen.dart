@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
 import '../../../domain/models/message.dart';
+import '../../../network/protocol/packet.dart';
+import '../../providers/app_providers.dart';
 import '../../widgets/mono_text.dart';
 import '../../widgets/top_bar.dart';
+import '../call/video_call_screen.dart';
 import 'chat_controller.dart';
 import 'widgets/composer.dart';
 import 'widgets/file_bubble.dart';
 import 'widgets/message_bubble.dart';
 import 'widgets/voice_bubble.dart';
 
-class ChatScreen extends ConsumerWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.chatId, this.contactName, this.nodeId});
 
   final String chatId;
@@ -18,19 +21,53 @@ class ChatScreen extends ConsumerWidget {
   final String? nodeId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final chatState = ref.watch(chatNotifierProvider(chatId));
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends ConsumerState<ChatScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _markRead();
+    ref.read(notificationServiceProvider)
+      ..setActiveChat(widget.chatId)
+      ..cancelChat(widget.chatId);
+  }
+
+  @override
+  void dispose() {
+    ref.read(notificationServiceProvider).setActiveChat(null);
+    super.dispose();
+  }
+
+  Future<void> _markRead() async {
+    await ref.read(chatRepoProvider).markRead(widget.chatId);
+    final ownId = ref.read(keyManagerProvider).nodeId;
+    if (ownId.isEmpty) return;
+    ref.read(meshRouterProvider).route(Packet(
+      type: PacketType.messageRead,
+      senderId: ownId,
+      recipientId: widget.chatId,
+      payload: const [],
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chatState = ref.watch(chatNotifierProvider(widget.chatId));
     final messages = chatState.messages;
 
     return Scaffold(
       backgroundColor: kBg,
       appBar: TopBar(
-        title: contactName ?? chatId,
+        title: widget.contactName ?? widget.chatId,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: kText, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: const [],
+        actions: [
+          _CallButton(chatId: widget.chatId, contactName: widget.contactName),
+        ],
       ),
       body: Column(
         children: [
@@ -46,11 +83,12 @@ class ChatScreen extends ConsumerWidget {
           ),
           Expanded(
             child: messages.isEmpty
-                ? _EmptyChat(contactName: contactName)
+                ? _EmptyChat(contactName: widget.contactName)
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
                     itemCount: messages.length + 1,
-                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       if (index == 0) return const _DateChip('СЕГОДНЯ');
                       final msg = messages[index - 1];
@@ -62,9 +100,35 @@ class ChatScreen extends ConsumerWidget {
                     },
                   ),
           ),
-          Composer(chatId: chatId),
+          Composer(chatId: widget.chatId),
         ],
       ),
+    );
+  }
+}
+
+class _CallButton extends ConsumerWidget {
+  const _CallButton({required this.chatId, this.contactName});
+  final String chatId;
+  final String? contactName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      icon: const Icon(
+        Icons.videocam_outlined,
+        color: kAccent,
+        size: 22,
+      ),
+      onPressed: () {
+        Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => VideoCallScreen(
+            peerId: chatId,
+            peerName: contactName,
+            isIncoming: false,
+          ),
+        ));
+      },
     );
   }
 }
@@ -79,8 +143,8 @@ class _EmptyChat extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 32,
-              color: kAccent.withValues(alpha: 0.3)),
+          Icon(Icons.chat_bubble_outline,
+              size: 32, color: kAccent.withValues(alpha: 0.3)),
           const SizedBox(height: 12),
           MonoText('MESH CONNECTED', fontSize: 10, color: kTextMuted),
           const SizedBox(height: 6),

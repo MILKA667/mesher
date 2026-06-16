@@ -6,6 +6,8 @@ import 'core/theme/app_theme.dart';
 import 'ui/providers/app_providers.dart';
 import 'ui/screens/onboarding/onboarding_screen.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(AppTheme.systemUiOverlay);
@@ -43,6 +45,7 @@ class _MeshLinkAppState extends ConsumerState<MeshLinkApp> {
       title: 'MeshLink',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
+      navigatorKey: rootNavigatorKey,
       home: switch (_identityReady) {
         null => const _SplashScreen(),
         true => const MeshApp(),

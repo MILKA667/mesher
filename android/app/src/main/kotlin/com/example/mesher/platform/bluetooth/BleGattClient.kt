@@ -86,15 +86,28 @@ class BleGattClient(
         gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
     }
 
-    /** Send [data], calling [callback] when all bytes are delivered (or on failure). */
+    /** Send [data], calling [callback] when all bytes are delivered (or on failure).
+     *
+     *  Wire format: [4-byte big-endian length][data bytes], then split into MTU chunks.
+     *  The receiver reassembles chunks before handing the message to Flutter.
+     */
     fun send(data: ByteArray, callback: (Boolean) -> Unit) {
         mainHandler.post {
             if (!isConnected || rxCharacteristic == null) { callback(false); return@post }
-            val size = chunkSize.coerceAtLeast(20)
+            // Prepend 4-byte big-endian length header (matches WifiDirectSocket framing).
+            val len = data.size
+            val framed = ByteArray(4 + len).also { buf ->
+                buf[0] = (len shr 24).toByte()
+                buf[1] = (len shr 16).toByte()
+                buf[2] = (len shr 8).toByte()
+                buf[3] = len.toByte()
+                System.arraycopy(data, 0, buf, 4, len)
+            }
+            val chunkSz = chunkSize.coerceAtLeast(20)
             var offset = 0
-            while (offset < data.size) {
-                writeQueue.add(data.sliceArray(offset until minOf(offset + size, data.size)))
-                offset += size
+            while (offset < framed.size) {
+                writeQueue.add(framed.sliceArray(offset until minOf(offset + chunkSz, framed.size)))
+                offset += chunkSz
             }
             pendingCallback = callback
             drainWrite()

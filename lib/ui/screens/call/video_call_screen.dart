@@ -154,7 +154,18 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                     _CallButton(
                       icon: _micMuted ? Icons.mic_off : Icons.mic_outlined,
                       active: _micMuted,
-                      onPressed: () => setState(() => _micMuted = !_micMuted),
+                      onPressed: () {
+                        setState(() => _micMuted = !_micMuted);
+                        ref
+                            .read(callManagerProvider)
+                            .setMicEnabled(!_micMuted);
+                      },
+                    ),
+                    const SizedBox(width: 18),
+                    _CallButton(
+                      icon: Icons.flip_camera_ios_outlined,
+                      onPressed: () =>
+                          ref.read(callManagerProvider).switchCamera(),
                     ),
                     const SizedBox(width: 18),
                     _CallButton(
@@ -169,7 +180,12 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                           ? Icons.videocam_off_outlined
                           : Icons.videocam_outlined,
                       active: _camOff,
-                      onPressed: () => setState(() => _camOff = !_camOff),
+                      onPressed: () {
+                        setState(() => _camOff = !_camOff);
+                        ref
+                            .read(callManagerProvider)
+                            .setCameraEnabled(!_camOff);
+                      },
                     ),
                   ],
                 ),

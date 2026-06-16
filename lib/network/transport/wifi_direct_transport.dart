@@ -67,6 +67,9 @@ class WifiDirectTransport implements Transport {
   @override
   List<String> get knownPeers => _peerCache.keys.toList();
 
+  @override
+  void registerSender(String nodeId, String senderAddr) {}
+
   void dispose() {
     _peerSub?.cancel();
     _peerController.close();

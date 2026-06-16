@@ -69,6 +69,14 @@ class BluetoothChannel(
                 advertiser.stopAdvertising()
                 result.success(null)
             }
+            "registerPeer" -> {
+                val nodeId = call.argument<String>("nodeId")
+                    ?: return result.success(null)
+                val mac = call.argument<String>("mac")
+                    ?: return result.success(null)
+                scanner.registerDevice(nodeId, mac)
+                result.success(null)
+            }
             "connect" -> {
                 val nodeId = call.argument<String>("nodeId")
                     ?: return result.error("ARG", "nodeId missing", null)

@@ -82,6 +82,18 @@ class AppDatabase extends _$AppDatabase {
       (update(messages)..where((t) => t.id.equals(messageId)))
           .write(MessagesCompanion(status: Value(status)));
 
+  Future<void> incrementUnread(String chatId) => customUpdate(
+        'UPDATE chats SET unread_count = unread_count + 1 WHERE id = ?',
+        variables: [Variable(chatId)],
+        updates: {chats},
+      );
+
+  Future<void> markOutgoingMessagesRead(String chatId) => customUpdate(
+        'UPDATE messages SET status = ? WHERE chat_id = ? AND is_outgoing = 1',
+        variables: [Variable(domain.MessageStatus.read.index), Variable(chatId)],
+        updates: {messages},
+      );
+
   // ── FileTransfers ─────────────────────────────────────────────────────────
 
   Stream<List<FileTransferRow>> watchTransfers() =>

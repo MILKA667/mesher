@@ -68,16 +68,34 @@ class _Meta extends StatelessWidget {
           MonoText(time, fontSize: 10, color: kTextDim),
           if (isMe) ...[
             const SizedBox(width: 4),
-            Icon(
-              status == MessageStatus.read
-                  ? Icons.done_all
-                  : Icons.done,
-              size: 12,
-              color: status == MessageStatus.read ? kAccent : kTextDim,
-            ),
+            _StatusIcon(status: status),
           ],
         ],
       ),
     );
+  }
+}
+
+class _StatusIcon extends StatelessWidget {
+  const _StatusIcon({required this.status});
+  final MessageStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (status) {
+      MessageStatus.sending => const SizedBox(
+          width: 10,
+          height: 10,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.2,
+            color: kTextDim,
+          ),
+        ),
+      MessageStatus.sent => const Icon(Icons.done, size: 12, color: kTextDim),
+      MessageStatus.delivered =>
+        const Icon(Icons.done_all, size: 12, color: kTextDim),
+      MessageStatus.read =>
+        const Icon(Icons.done_all, size: 12, color: kAccent),
+    };
   }
 }

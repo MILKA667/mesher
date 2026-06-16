@@ -41,5 +41,11 @@ class HotspotTransport implements Transport {
   @override
   bool isConnected(String nodeId) => true; // всегда видно через hotspot AP
 
+  @override
+  List<String> get knownPeers => [];
+
+  @override
+  void registerSender(String nodeId, String senderAddr) {}
+
   void dispose() => _peerController.close();
 }

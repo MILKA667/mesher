@@ -1,6 +1,21 @@
 import 'dart:math';
 
-enum PacketType { message, fileChunk, fileAnnounce, ping, pong, callSignal, profileAnnounce }
+enum PacketType {
+  message,
+  fileChunk,
+  fileAnnounce,
+  ping,
+  pong,
+  callSignal,
+  profileAnnounce,
+  messageAck,
+  messageRead,
+  // Swarm (torrent-like) file sharing:
+  swarmAnnounce, // 9 — peer publishes which files it has
+  swarmRequest,  // 10 — peer asks for one chunk by infoHash + index
+  swarmChunk,    // 11 — peer delivers one chunk
+  swarmCatalogQuery, // 12 — ask all peers to announce their catalog
+}
 
 class Packet {
   Packet({

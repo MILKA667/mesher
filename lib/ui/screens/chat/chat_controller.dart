@@ -31,24 +31,36 @@ class ChatNotifier extends StateNotifier<ChatState> {
   Future<void> sendText(String text) async {
     if (text.trim().isEmpty) return;
     state = state.copyWith(isSending: true);
+    final trimmed = text.trim();
     final msg = Message(
       id: const Uuid().v4(),
       chatId: chatId,
       kind: MessageKind.text,
       timestamp: DateTime.now(),
       isOutgoing: true,
-      text: text.trim(),
+      text: trimmed,
       status: MessageStatus.sending,
     );
     await _ref.read(chatRepoProvider).saveMessage(msg);
-    try {
-      await _ref
-          .read(meshServiceProvider)
-          .send(chatId, utf8.encode(text.trim()));
-      await _ref
-          .read(appDatabaseProvider)
-          .updateMessageStatus(msg.id, MessageStatus.sent.index);
-    } catch (_) {}
+
+    // Retry up to 3 times with 10-second timeout each attempt.
+    // On failure the transport clears its GATT cache, so each retry
+    // forces a fresh BLE connection.
+    final bytes = utf8.encode('${msg.id}|$trimmed');
+    bool sent = false;
+    for (int attempt = 0; attempt < 3 && !sent; attempt++) {
+      if (attempt > 0) await Future.delayed(const Duration(seconds: 2));
+      try {
+        await _ref
+            .read(meshServiceProvider)
+            .send(chatId, bytes)
+            .timeout(const Duration(seconds: 10));
+        await _ref
+            .read(appDatabaseProvider)
+            .updateMessageStatus(msg.id, MessageStatus.sent.index);
+        sent = true;
+      } catch (_) {}
+    }
     state = state.copyWith(isSending: false);
   }
 }

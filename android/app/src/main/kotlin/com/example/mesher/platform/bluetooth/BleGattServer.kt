@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -25,7 +26,21 @@ class BleGattServer(
     private val clients = mutableMapOf<String, BleGattClient>() // nodeId → outgoing client
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    // Per-remote-device reassembly buffers (BLE delivers one MTU chunk per write).
+    // Keyed by device MAC address; cleared on disconnect.
+    private val receiveBuffers = mutableMapOf<String, ByteArrayOutputStream>()
+
     private val serverCallback = object : BluetoothGattServerCallback() {
+
+        override fun onConnectionStateChange(
+            device: BluetoothDevice, status: Int, newState: Int
+        ) {
+            if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                receiveBuffers.remove(device.address)
+                Log.d(TAG, "Remote disconnected ${device.address}, buffer cleared")
+            }
+        }
+
         override fun onCharacteristicWriteRequest(
             device: BluetoothDevice, requestId: Int,
             characteristic: BluetoothGattCharacteristic,
@@ -36,13 +51,35 @@ class BleGattServer(
             if (responseNeeded) {
                 gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
             }
-            if (characteristic.uuid == RX_CHAR_UUID && value.isNotEmpty()) {
-                Log.d(TAG, "Received ${value.size} bytes from ${device.address}")
-                val copy = value.copyOf()
-                val addr = device.address
-                // EventChannel.success() must be called on the main thread
-                mainHandler.post { onReceive(addr, copy) }
+            if (characteristic.uuid != RX_CHAR_UUID || value.isEmpty()) return
+
+            // Accumulate chunk into per-device buffer then extract length-prefixed frames.
+            val addr = device.address
+            val buf = receiveBuffers.getOrPut(addr) { ByteArrayOutputStream() }
+            buf.write(value)
+            val bytes = buf.toByteArray()
+
+            var pos = 0
+            while (pos + 4 <= bytes.size) {
+                val msgLen = ((bytes[pos].toInt() and 0xFF) shl 24) or
+                             ((bytes[pos + 1].toInt() and 0xFF) shl 16) or
+                             ((bytes[pos + 2].toInt() and 0xFF) shl 8) or
+                             (bytes[pos + 3].toInt() and 0xFF)
+                if (msgLen <= 0 || msgLen > 1_000_000) {
+                    Log.w(TAG, "Bad frame length $msgLen from $addr, clearing buffer")
+                    buf.reset()
+                    return
+                }
+                if (pos + 4 + msgLen > bytes.size) break // incomplete frame, wait for more
+                val msg = bytes.copyOfRange(pos + 4, pos + 4 + msgLen)
+                Log.d(TAG, "Reassembled ${msg.size} bytes from $addr")
+                mainHandler.post { onReceive(addr, msg) }
+                pos += 4 + msgLen
             }
+
+            // Keep only the unprocessed tail in the buffer
+            buf.reset()
+            if (pos < bytes.size) buf.write(bytes, pos, bytes.size - pos)
         }
     }
 

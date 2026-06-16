@@ -72,4 +72,13 @@ class BleScanner(
     }
 
     fun getDevice(nodeId: String): BluetoothDevice? = deviceMap[nodeId]
+
+    /** Register a nodeId → device mapping from an incoming GATT connection so
+     *  we can GATT-connect back to this peer without waiting for a scan result. */
+    fun registerDevice(nodeId: String, mac: String) {
+        if (deviceMap.containsKey(nodeId)) return
+        val device = adapter?.getRemoteDevice(mac) ?: return
+        deviceMap[nodeId] = device
+        Log.d(TAG, "Registered peer $nodeId at $mac from incoming connection")
+    }
 }

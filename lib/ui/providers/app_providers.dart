@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../crypto/key_manager.dart';
+import '../../domain/models/contact.dart';
 import '../../data/local/database/app_database.dart';
 import '../../data/local/file_storage.dart';
 import '../../data/local/secure_storage.dart';
@@ -15,6 +16,7 @@ import '../../domain/models/user_profile.dart';
 import '../../network/discovery/discovery_service.dart';
 import '../../network/platform/bluetooth_channel.dart';
 import '../../network/platform/wifi_direct_channel.dart';
+import '../../network/protocol/packet.dart';
 import '../../network/protocol/packet_codec.dart';
 import '../../network/routing/mesh_router.dart';
 import '../../network/transport/bluetooth_transport.dart';
@@ -22,6 +24,8 @@ import '../../network/transport/wifi_direct_transport.dart';
 import '../../services/call_manager.dart';
 import '../../services/file_transfer_service.dart';
 import '../../services/mesh_service.dart';
+import '../../services/notification_service.dart';
+import '../../services/swarm_service.dart';
 
 // ── Infrastructure ─────────────────────────────────────────────────────────
 
@@ -136,6 +140,31 @@ final callManagerProvider = Provider<CallManager>((ref) {
   return manager;
 });
 
+// ── NotificationService ────────────────────────────────────────────────────
+
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService.instance;
+});
+
+// ── SwarmService (torrent-like file sharing) ───────────────────────────────
+
+final swarmServiceProvider = Provider<SwarmService>((ref) {
+  final svc = SwarmService(
+    keys: ref.watch(keyManagerProvider),
+    router: ref.watch(meshRouterProvider),
+    fileStorage: ref.watch(fileStorageProvider),
+    fileRepo: ref.watch(fileRepoProvider),
+    notifications: ref.watch(notificationServiceProvider),
+  );
+  svc.start();
+  ref.onDispose(svc.dispose);
+  return svc;
+});
+
+final swarmCatalogProvider = StreamProvider<List<SwarmEntry>>((ref) {
+  return ref.watch(swarmServiceProvider).catalog;
+});
+
 // ── Screen state streams ───────────────────────────────────────────────────
 
 final chatsStreamProvider = StreamProvider<List<Chat>>((ref) {
@@ -176,49 +205,97 @@ final ownProfileProvider = FutureProvider<UserProfile>((ref) async {
   );
 });
 
-// ── Transport toggles ──────────────────────────────────────────────────────
+// ── Active transport (only one at a time) ──────────────────────────────────
 
-final btRunningProvider = StateProvider<bool>((_) => true);
-final wifiRunningProvider = StateProvider<bool>((_) => true);
+final activeTransportProvider =
+    StateProvider<ConnectionMode>((_) => ConnectionMode.bluetooth);
 
 // ── Current bottom nav tab ─────────────────────────────────────────────────
 
 final currentTabProvider = StateProvider<int>((_) => 0);
 
-// ── Incoming message handler (mesh → SQLite) ───────────────────────────────
+// ── Unified mesh packet handler (message / ack / read / call) ─────────────
 
 final incomingMessageHandlerProvider = Provider<void>((ref) {
-  final service = ref.watch(meshServiceProvider);
+  final router = ref.watch(meshRouterProvider);
   final db = ref.watch(appDatabaseProvider);
   final chatRepo = ref.watch(chatRepoProvider);
   final discovery = ref.watch(discoveryServiceProvider);
+  final callManager = ref.watch(callManagerProvider);
+  final notifications = ref.watch(notificationServiceProvider);
+  final keys = ref.watch(keyManagerProvider);
 
-  final sub = service.messages.listen((event) async {
-    final (senderId, bytes) = event;
-    final text = utf8.decode(bytes, allowMalformed: true);
-
-    // Try to resolve nickname from discovery service.
-    String displayName = senderId.length >= 8
-        ? senderId.substring(0, 8)
-        : senderId;
+  Future<String> resolveName(String userId) async {
+    final fallback =
+        userId.length >= 8 ? userId.substring(0, 8) : userId;
     try {
-      final users = await discovery.nearbyUsers.first
-          .timeout(const Duration(milliseconds: 100), onTimeout: () => <UserProfile>[]);
-      final match = users.where((u) => u.userId == senderId).firstOrNull;
-      if (match != null) displayName = match.nickname;
-    } catch (_) {}
+      final users = await discovery.nearbyUsers.first.timeout(
+        const Duration(milliseconds: 100),
+        onTimeout: () => <UserProfile>[],
+      );
+      final match = users.where((u) => u.userId == userId).firstOrNull;
+      return match?.nickname ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
 
-    await db.getOrCreateChat(nodeId: senderId, displayName: displayName);
-    final msg = Message(
-      id: const Uuid().v4(),
-      chatId: senderId,
-      kind: MessageKind.text,
-      timestamp: DateTime.now(),
-      isOutgoing: false,
-      text: text,
-      status: MessageStatus.delivered,
-    );
-    await chatRepo.saveMessage(msg);
+  final sub = router.incomingPackets.listen((packet) async {
+    switch (packet.type) {
+      case PacketType.message:
+        final raw = utf8.decode(packet.payload, allowMalformed: true);
+        final sep = raw.indexOf('|');
+        final msgId = sep > 0 ? raw.substring(0, sep) : null;
+        final text = sep > 0 ? raw.substring(sep + 1) : raw;
+
+        final displayName = await resolveName(packet.senderId);
+
+        await db.getOrCreateChat(
+            nodeId: packet.senderId, displayName: displayName);
+        await db.incrementUnread(packet.senderId);
+        final msg = Message(
+          id: msgId ?? const Uuid().v4(),
+          chatId: packet.senderId,
+          kind: MessageKind.text,
+          timestamp: DateTime.now(),
+          isOutgoing: false,
+          text: text,
+          status: MessageStatus.delivered,
+        );
+        await chatRepo.saveMessage(msg);
+
+        await notifications.showMessage(
+          chatId: packet.senderId,
+          sender: displayName,
+          text: text,
+        );
+
+        if (msgId != null) {
+          router.route(Packet(
+            type: PacketType.messageAck,
+            senderId: keys.nodeId,
+            recipientId: packet.senderId,
+            payload: utf8.encode(msgId),
+          ));
+        }
+
+      case PacketType.messageAck:
+        final msgId = utf8.decode(packet.payload, allowMalformed: true).trim();
+        if (msgId.isNotEmpty) {
+          await db.updateMessageStatus(msgId, MessageStatus.delivered.index);
+        }
+
+      case PacketType.messageRead:
+        await db.markOutgoingMessagesRead(packet.senderId);
+
+      case PacketType.callSignal:
+        final name = await resolveName(packet.senderId);
+        await callManager.handleSignal(packet.senderId, packet.payload,
+            resolveName: () => name);
+
+      default:
+        break;
+    }
   });
 
   ref.onDispose(sub.cancel);

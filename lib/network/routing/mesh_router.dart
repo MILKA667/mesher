@@ -26,13 +26,17 @@ class FloodRouter implements MeshRouter {
   void addTransport(Transport transport) {
     _transports.add(transport);
     final sub = transport.received.listen((event) {
-      final (_, bytes) = event;
+      final (senderAddr, bytes) = event;
       try {
         final packet = _codec.decode(bytes);
         final key = '${packet.senderId}:${packet.nonce}';
         if (!_seen.contains(key)) {
           _seen.add(key);
-          if (_seen.length > 1000) _seen.clear(); // simple eviction
+          if (_seen.length > 1000) _seen.clear();
+          // Let the transport register a reverse route to the sender using the
+          // transport-level address (e.g. BLE MAC) so it can reply even before
+          // a full scan/discovery event fires.
+          transport.registerSender(packet.senderId, senderAddr);
           _incomingController.add(packet);
         }
       } catch (_) {

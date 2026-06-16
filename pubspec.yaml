@@ -40,6 +40,15 @@ dependencies:
   # Utilities
   uuid: ^4.5.1
 
+  # Local notifications (новые сообщения, входящие звонки)
+  flutter_local_notifications: ^17.2.4
+
+  # File picker (раздача файлов в swarm)
+  file_picker: ^8.1.4
+
+  # Hashing for swarm info_hash (SHA-256)
+  crypto: ^3.0.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

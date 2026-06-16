@@ -31,6 +31,9 @@ class CallManager {
   RTCPeerConnection? _pc;
   MediaStream? _localStream;
   String? _remotePeerId;
+  bool _renderersReady = false;
+  bool _remoteDescriptionSet = false;
+  final _pendingCandidates = <RTCIceCandidate>[];
 
   final _stateController = StreamController<CallState>.broadcast();
   final _localRenderer = RTCVideoRenderer();
@@ -42,18 +45,31 @@ class CallManager {
   RTCVideoRenderer get localRenderer => _localRenderer;
   RTCVideoRenderer get remoteRenderer => _remoteRenderer;
 
+  // Pending offer received before user accepts.
+  (String, Map<String, dynamic>)? _pendingOffer;
+
+  // Configuration: local-mesh only, but include public STUN as fallback when
+  // peers happen to share a LAN/internet route (helps WiFi Direct group owners).
   static const _pcConfig = {
-    'iceServers': <Map>[], // local mesh — no STUN/TURN needed
+    'iceServers': [
+      {'urls': 'stun:stun.l.google.com:19302'},
+    ],
+    'sdpSemantics': 'unified-plan',
   };
 
   Future<void> init() async {
+    if (_renderersReady) return;
     await _localRenderer.initialize();
     await _remoteRenderer.initialize();
+    _renderersReady = true;
   }
 
   /// Start an outgoing call to [peerId].
   Future<void> startCall(String peerId) async {
+    await init();
     _remotePeerId = peerId;
+    _remoteDescriptionSet = false;
+    _pendingCandidates.clear();
     await _setupPeerConnection();
     _localStream = await navigator.mediaDevices
         .getUserMedia({'audio': true, 'video': true});
@@ -70,7 +86,9 @@ class CallManager {
 
   /// Accept an incoming call. [sdpOffer] is the remote SDP offer map.
   Future<void> answerCall(String peerId, Map<String, dynamic> sdpOffer) async {
+    await init();
     _remotePeerId = peerId;
+    _remoteDescriptionSet = false;
     await _setupPeerConnection();
     _localStream = await navigator.mediaDevices
         .getUserMedia({'audio': true, 'video': true});
@@ -81,6 +99,8 @@ class CallManager {
 
     await _pc!.setRemoteDescription(
         RTCSessionDescription(sdpOffer['sdp'], sdpOffer['type']));
+    _remoteDescriptionSet = true;
+    await _drainPendingCandidates();
     final answer = await _pc!.createAnswer();
     await _pc!.setLocalDescription(answer);
     _sendSignal(peerId, CallSignalType.answer, answer.toMap());
@@ -96,39 +116,77 @@ class CallManager {
     _stateController.add(CallState.ended);
   }
 
-  /// Handle a received call signal packet. Called by MeshService.
-  Future<void> handleSignal(String peerId, List<int> payload) async {
+  /// Mute/unmute the local microphone.
+  void setMicEnabled(bool enabled) {
+    final tracks = _localStream?.getAudioTracks() ?? const [];
+    for (final t in tracks) {
+      t.enabled = enabled;
+    }
+  }
+
+  /// Enable/disable the local camera.
+  void setCameraEnabled(bool enabled) {
+    final tracks = _localStream?.getVideoTracks() ?? const [];
+    for (final t in tracks) {
+      t.enabled = enabled;
+    }
+  }
+
+  /// Switch between front and rear camera.
+  Future<void> switchCamera() async {
+    final tracks = _localStream?.getVideoTracks() ?? const [];
+    if (tracks.isEmpty) return;
+    try {
+      await Helper.switchCamera(tracks.first);
+    } catch (_) {}
+  }
+
+  /// Handle a received call signal packet. Called by message handler.
+  Future<void> handleSignal(
+    String peerId,
+    List<int> payload, {
+    String Function()? resolveName,
+  }) async {
     if (payload.isEmpty) return;
     final signalType = payload[0];
     final jsonStr = utf8.decode(payload.sublist(1));
-    final data = json.decode(jsonStr) as Map<String, dynamic>;
+    final data = jsonStr.isEmpty
+        ? <String, dynamic>{}
+        : json.decode(jsonStr) as Map<String, dynamic>;
 
     switch (signalType) {
       case CallSignalType.offer:
-        _incomingController.add(IncomingCallInfo(peerId: peerId, peerName: null));
-        _stateController.add(CallState.incoming);
-        // Store offer for answerCall
         _pendingOffer = (peerId, data);
+        _pendingCandidates.clear();
+        _remoteDescriptionSet = false;
+        _stateController.add(CallState.incoming);
+        _incomingController.add(IncomingCallInfo(
+          peerId: peerId,
+          peerName: resolveName?.call(),
+        ));
 
       case CallSignalType.answer:
         if (_pc == null) return;
         await _pc!.setRemoteDescription(
             RTCSessionDescription(data['sdp'], data['type']));
+        _remoteDescriptionSet = true;
+        await _drainPendingCandidates();
         _stateController.add(CallState.connected);
 
       case CallSignalType.iceCandidate:
-        if (_pc == null) return;
-        await _pc!.addCandidate(RTCIceCandidate(
-            data['candidate'], data['sdpMid'], data['sdpMLineIndex']));
+        final candidate = RTCIceCandidate(
+            data['candidate'], data['sdpMid'], data['sdpMLineIndex']);
+        if (_pc != null && _remoteDescriptionSet) {
+          await _pc!.addCandidate(candidate);
+        } else {
+          _pendingCandidates.add(candidate);
+        }
 
       case CallSignalType.hangup:
         await _teardown();
         _stateController.add(CallState.ended);
     }
   }
-
-  // Pending offer from remote while we haven't answered yet.
-  (String, Map<String, dynamic>)? _pendingOffer;
 
   Future<void> acceptPendingCall() async {
     final p = _pendingOffer;
@@ -137,11 +195,21 @@ class CallManager {
     await answerCall(p.$1, p.$2);
   }
 
+  void rejectPendingCall() {
+    final p = _pendingOffer;
+    _pendingOffer = null;
+    if (p != null) {
+      _sendSignal(p.$1, CallSignalType.hangup, {});
+    }
+    _stateController.add(CallState.ended);
+  }
+
   Future<void> _setupPeerConnection() async {
     _pc = await createPeerConnection(_pcConfig);
 
     _pc!.onIceCandidate = (candidate) {
       if (_remotePeerId == null) return;
+      if (candidate.candidate == null) return;
       _sendSignal(_remotePeerId!, CallSignalType.iceCandidate, candidate.toMap());
     };
 
@@ -155,10 +223,18 @@ class CallManager {
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         _stateController.add(CallState.connected);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
-          state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected) {
+          state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
         _stateController.add(CallState.ended);
       }
     };
+  }
+
+  Future<void> _drainPendingCandidates() async {
+    if (_pc == null || !_remoteDescriptionSet) return;
+    for (final c in _pendingCandidates) {
+      await _pc!.addCandidate(c);
+    }
+    _pendingCandidates.clear();
   }
 
   void _sendSignal(String peerId, int signalType, Map<String, dynamic> data) {
@@ -174,11 +250,13 @@ class CallManager {
 
   Future<void> _teardown() async {
     _localStream?.getTracks().forEach((t) => t.stop());
-    _localStream?.dispose();
+    await _localStream?.dispose();
     _localStream = null;
     await _pc?.close();
     _pc = null;
     _remotePeerId = null;
+    _remoteDescriptionSet = false;
+    _pendingCandidates.clear();
     _localRenderer.srcObject = null;
     _remoteRenderer.srcObject = null;
   }

@@ -14,6 +14,7 @@ class BottomNav extends StatelessWidget {
   static const _tabs = [
     _Tab(icon: Icons.chat_bubble_outline, label: 'CHATS'),
     _Tab(icon: Icons.radar, label: 'NEARBY'),
+    _Tab(icon: Icons.share_outlined, label: 'SWARM'),
     _Tab(icon: Icons.person_outline, label: 'PROFILE'),
   ];
 
