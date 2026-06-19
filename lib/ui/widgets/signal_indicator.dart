@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/colors.dart';
 
-/// 4-bar signal strength indicator (level 0–4).
 class SignalIndicator extends StatelessWidget {
   const SignalIndicator({super.key, this.level = 3, this.size = 14});
 

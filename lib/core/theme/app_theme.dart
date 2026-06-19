@@ -9,7 +9,7 @@ class AppTheme {
   static ThemeData get dark => ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: kBg,
-        // fontFamily: kFontGrotesk,  // enable after adding fonts to assets/fonts/
+
         colorScheme: const ColorScheme.dark(
           primary: kAccent,
           secondary: kAccent,

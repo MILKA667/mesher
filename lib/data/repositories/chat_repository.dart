@@ -39,14 +39,12 @@ class ChatRepositoryImpl implements ChatRepository {
       durationSeconds: Value(m.durationSeconds),
       status: Value(m.status.index),
     ));
-    // Update chat preview
-    await _db.upsertChat(ChatsCompanion(
-      id: Value(m.chatId),
-      contactId: const Value(''),
-      displayName: const Value(''),
-      lastMessage: Value(m.text ?? m.fileName ?? ''),
-      lastMessageTime: Value(m.timestamp),
-    ));
+
+    await _db.updateChatPreview(
+      chatId: m.chatId,
+      lastMessage: m.text ?? m.fileName ?? '',
+      lastMessageTime: m.timestamp,
+    );
   }
 
   @override

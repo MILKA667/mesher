@@ -9,7 +9,6 @@ import '../../widgets/top_bar.dart';
 import '../call/voice_call_screen.dart';
 import 'chat_controller.dart';
 import 'widgets/composer.dart';
-import 'widgets/file_bubble.dart';
 import 'widgets/message_bubble.dart';
 import 'widgets/voice_bubble.dart';
 
@@ -93,7 +92,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       if (index == 0) return const _DateChip('СЕГОДНЯ');
                       final msg = messages[index - 1];
                       return switch (msg.kind) {
-                        MessageKind.file => FileBubble(message: msg),
                         MessageKind.voice => VoiceBubble(message: msg),
                         _ => MessageBubble(message: msg),
                       };

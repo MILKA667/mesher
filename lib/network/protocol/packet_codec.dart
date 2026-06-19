@@ -7,7 +7,6 @@ abstract interface class PacketCodec {
   Packet decode(List<int> bytes);
 }
 
-/// CBOR wire format: [typeIndex, senderId, recipientId|null, nonce, payload]
 class CborPacketCodec implements PacketCodec {
   @override
   List<int> encode(Packet p) {

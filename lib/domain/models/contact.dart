@@ -15,7 +15,7 @@ class Contact {
   final String name;
   final String nodeId;
   final ConnectionMode mode;
-  final int signalLevel; // 0–4
+  final int signalLevel;
   final bool isOnline;
   final int? distanceMeters;
 

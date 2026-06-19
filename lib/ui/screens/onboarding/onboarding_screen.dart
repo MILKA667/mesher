@@ -167,7 +167,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const Spacer(),
               Center(
                 child: const MonoText(
-                  'СКВОЗНОЕ ШИФРОВАНИЕ · БЕЗ СЕРВЕРОВ',
+                  'BLUETOOTH MESH · БЕЗ ИНТЕРНЕТА',
                   fontSize: 9,
                   color: kTextMuted,
                 ),

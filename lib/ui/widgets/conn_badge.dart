@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/models/contact.dart';
 
-/// Small icon showing connection mode (Bluetooth-only build).
 class ConnBadge extends StatelessWidget {
   const ConnBadge({super.key, required this.mode, this.size = 12});
 

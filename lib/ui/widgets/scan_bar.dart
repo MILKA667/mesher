@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/colors.dart';
 
-/// Animated scan sweep bar showing peer positions on a linear range.
 class ScanBar extends StatefulWidget {
   const ScanBar({super.key, this.peerPositions = const []});
 
-  /// Normalized positions 0.0–1.0 for each peer dot.
   final List<double> peerPositions;
 
   @override
@@ -60,7 +58,6 @@ class _ScanPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final midY = size.height / 2;
 
-    // base line
     canvas.drawLine(
       Offset(0, midY),
       Offset(size.width, midY),
@@ -69,7 +66,6 @@ class _ScanPainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    // peer dots
     for (var i = 0; i < peers.length; i++) {
       final x = peers[i] * size.width;
       canvas.drawCircle(
@@ -79,7 +75,6 @@ class _ScanPainter extends CustomPainter {
       );
     }
 
-    // sweep
     final sweepX = progress * (size.width + 36) - 36;
     final sweepPaint = Paint()
       ..shader = LinearGradient(

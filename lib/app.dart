@@ -11,7 +11,6 @@ import 'ui/screens/chat/chat_screen.dart';
 import 'ui/widgets/bottom_nav.dart';
 import 'ui/screens/chats/chats_screen.dart';
 import 'ui/screens/radar/radar_screen.dart';
-import 'ui/screens/files/files_screen.dart';
 import 'ui/screens/profile/profile_screen.dart';
 
 class MeshApp extends ConsumerStatefulWidget {
@@ -25,7 +24,6 @@ class _MeshAppState extends ConsumerState<MeshApp> {
   static const _screens = [
     ChatsScreen(),
     RadarScreen(),
-    FilesScreen(),
     ProfileScreen(),
   ];
 
@@ -50,7 +48,7 @@ class _MeshAppState extends ConsumerState<MeshApp> {
     if (!mounted) return;
 
     final km = ref.read(keyManagerProvider);
-    final nodeIdBytes = km.publicKeyBytes.take(8).toList();
+    final nodeIdBytes = km.nodeIdBytes;
     final storage = ref.read(secureStorageProvider);
     final nickname = await storage.read('profile_nickname') ??
         'Node-${km.nodeId.substring(0, 4)}';
@@ -61,9 +59,7 @@ class _MeshAppState extends ConsumerState<MeshApp> {
 
     await ref.read(discoveryServiceProvider).start();
     ref.read(incomingMessageHandlerProvider);
-    // Boot swarm (file sharing) listener.
-    ref.read(swarmServiceProvider);
-    // Boot reactions listener.
+
     ref.read(reactionsServiceProvider);
 
     final notifications = ref.read(notificationServiceProvider);

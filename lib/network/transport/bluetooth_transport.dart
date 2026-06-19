@@ -64,7 +64,7 @@ class BluetoothTransport implements Transport {
       await _ensureGatt(nodeId);
       await _channel.send(nodeId, data);
     } catch (e) {
-      // Force re-connect on the next send attempt.
+
       _gattConnected.remove(nodeId);
       rethrow;
     }
@@ -82,9 +82,6 @@ class BluetoothTransport implements Transport {
   @override
   List<String> get knownPeers => _peerCache.keys.toList();
 
-  /// Called by the router when a packet arrives from [mac] (BLE MAC address)
-  /// and decodes to [nodeId]. Registers the reverse route so we can GATT-connect
-  /// back without waiting for a scan advertisement.
   @override
   void registerSender(String nodeId, String mac) {
     if (_peerCache.containsKey(nodeId)) return;
@@ -96,11 +93,9 @@ class BluetoothTransport implements Transport {
       distanceMeters: 0,
     );
     _peerController.add(_peerCache.values.toList());
-    _channel.registerPeer(nodeId, mac); // fire-and-forget
+    _channel.registerPeer(nodeId, mac);
   }
 
-  /// Convert raw BLE advertisement map to a Peer domain object.
-  /// Caller provides rssi→distance formula.
   static Peer peerFromAdvert(Map<String, dynamic> map) {
     final rssi = map['rssi'] as int? ?? -90;
     final dist = (10.0 * (((-59.0) - rssi) / 20.0)).round().clamp(0, 999);

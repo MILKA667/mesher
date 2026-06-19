@@ -4,7 +4,7 @@ import 'package:drift/drift.dart';
 class Reactions extends Table {
   TextColumn get messageId => text()();
   TextColumn get chatId => text()();
-  TextColumn get userId => text()(); // who reacted
+  TextColumn get userId => text()();
   TextColumn get emoji => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 

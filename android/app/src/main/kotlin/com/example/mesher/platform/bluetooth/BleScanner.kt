@@ -12,7 +12,6 @@ import android.os.ParcelUuid
 import android.util.Log
 import java.util.UUID
 
-/** Scans for BLE peers advertising the MeshLink service UUID. */
 class BleScanner(
     private val context: Context,
     private val onPeer: (Map<String, Any>) -> Unit
@@ -26,13 +25,12 @@ class BleScanner(
     private val adapter: BluetoothAdapter? get() = manager.adapter
     private var scanning = false
 
-    // Cache of discovered devices keyed by nodeId for GATT connection.
     private val deviceMap = mutableMapOf<String, BluetoothDevice>()
 
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val record = result.scanRecord ?: return
-            // NodeId + nickname are in manufacturer data (company ID 0xFFFF)
+
             val mfgData = record.getManufacturerSpecificData(0xFFFF) ?: return
             if (mfgData.size < 8) return
             val nodeId = mfgData.take(8).joinToString("") { "%02X".format(it) }
@@ -73,8 +71,6 @@ class BleScanner(
 
     fun getDevice(nodeId: String): BluetoothDevice? = deviceMap[nodeId]
 
-    /** Register a nodeId → device mapping from an incoming GATT connection so
-     *  we can GATT-connect back to this peer without waiting for a scan result. */
     fun registerDevice(nodeId: String, mac: String) {
         if (deviceMap.containsKey(nodeId)) return
         val device = adapter?.getRemoteDevice(mac) ?: return

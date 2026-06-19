@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/colors.dart';
 
-/// Inline JetBrains Mono text — used for node IDs, bytes, speeds, timestamps.
 class MonoText extends StatelessWidget {
   const MonoText(
     this.data, {

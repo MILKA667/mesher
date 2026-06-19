@@ -1,15 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../crypto/key_manager.dart';
 import '../../data/local/database/app_database.dart';
-import '../../data/local/file_storage.dart';
 import '../../data/local/secure_storage.dart';
 import '../../data/repositories/chat_repository.dart';
-import '../../data/repositories/file_repository.dart';
 import '../../data/repositories/peer_repository.dart';
 import '../../domain/models/chat.dart';
-import '../../domain/models/file_transfer.dart';
 import '../../domain/models/message.dart';
 import '../../domain/models/reaction.dart';
 import '../../domain/models/user_profile.dart';
@@ -19,14 +17,10 @@ import '../../network/protocol/packet.dart';
 import '../../network/protocol/packet_codec.dart';
 import '../../network/routing/mesh_router.dart';
 import '../../network/transport/bluetooth_transport.dart';
-import '../../services/file_transfer_service.dart';
 import '../../services/mesh_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/reactions_service.dart';
-import '../../services/swarm_service.dart';
 import '../../services/voice_call_service.dart';
-
-// ── Infrastructure ─────────────────────────────────────────────────────────
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -36,15 +30,9 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 
 final secureStorageProvider = Provider<SecureStorage>((_) => SecureStorageImpl());
 
-final fileStorageProvider = Provider<FileStorage>((_) => FileStorageImpl());
-
-// ── Crypto (only for node identity) ────────────────────────────────────────
-
 final keyManagerProvider = Provider<KeyManager>((ref) {
   return KeyManagerImpl(ref.watch(secureStorageProvider));
 });
-
-// ── Network ────────────────────────────────────────────────────────────────
 
 final btChannelProvider = Provider((_) => BluetoothChannel());
 
@@ -62,8 +50,6 @@ final meshRouterProvider = Provider<MeshRouter>((ref) {
   return router;
 });
 
-// ── Repositories ───────────────────────────────────────────────────────────
-
 final chatRepoProvider = Provider<ChatRepository>((ref) {
   return ChatRepositoryImpl(ref.watch(appDatabaseProvider));
 });
@@ -71,12 +57,6 @@ final chatRepoProvider = Provider<ChatRepository>((ref) {
 final peerRepoProvider = Provider<PeerRepository>((ref) {
   return PeerRepositoryImpl(ref.watch(appDatabaseProvider));
 });
-
-final fileRepoProvider = Provider<FileRepository>((ref) {
-  return FileRepositoryImpl(ref.watch(appDatabaseProvider));
-});
-
-// ── MeshService ────────────────────────────────────────────────────────────
 
 final meshServiceProvider = Provider<MeshService>((ref) {
   final service = MeshServiceImpl(
@@ -90,8 +70,6 @@ final meshServiceProvider = Provider<MeshService>((ref) {
   return service;
 });
 
-// ── DiscoveryService ───────────────────────────────────────────────────────
-
 final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
   final svc = DiscoveryServiceImpl(
     keys: ref.watch(keyManagerProvider),
@@ -104,22 +82,6 @@ final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
   ref.onDispose(svc.dispose);
   return svc;
 });
-
-// ── FileTransferService ────────────────────────────────────────────────────
-
-final fileTransferServiceProvider = Provider<FileTransferService>((ref) {
-  final svc = FileTransferService(
-    keys: ref.watch(keyManagerProvider),
-    router: ref.watch(meshRouterProvider),
-    fileRepo: ref.watch(fileRepoProvider),
-    fileStorage: ref.watch(fileStorageProvider),
-  );
-  svc.startListening(ref.watch(meshRouterProvider).incomingPackets);
-  ref.onDispose(svc.dispose);
-  return svc;
-});
-
-// ── ReactionsService ───────────────────────────────────────────────────────
 
 final reactionsServiceProvider = Provider<ReactionsService>((ref) {
   final svc = ReactionsService(
@@ -139,8 +101,6 @@ final chatReactionsProvider =
       (rows) => rows.map(AppDatabase.reactionFromRow).toList());
 });
 
-// ── VoiceCallService (BLE-only mesh transport) ─────────────────────────────
-
 final voiceCallServiceProvider = Provider<VoiceCallService>((ref) {
   final svc = VoiceCallService(
     keys: ref.watch(keyManagerProvider),
@@ -151,32 +111,9 @@ final voiceCallServiceProvider = Provider<VoiceCallService>((ref) {
   return svc;
 });
 
-// ── NotificationService ────────────────────────────────────────────────────
-
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService.instance;
 });
-
-// ── SwarmService (torrent-like file sharing) ───────────────────────────────
-
-final swarmServiceProvider = Provider<SwarmService>((ref) {
-  final svc = SwarmService(
-    keys: ref.watch(keyManagerProvider),
-    router: ref.watch(meshRouterProvider),
-    fileStorage: ref.watch(fileStorageProvider),
-    fileRepo: ref.watch(fileRepoProvider),
-    notifications: ref.watch(notificationServiceProvider),
-  );
-  svc.start();
-  ref.onDispose(svc.dispose);
-  return svc;
-});
-
-final swarmCatalogProvider = StreamProvider<List<SwarmEntry>>((ref) {
-  return ref.watch(swarmServiceProvider).catalog;
-});
-
-// ── Screen state streams ───────────────────────────────────────────────────
 
 final chatsStreamProvider = StreamProvider<List<Chat>>((ref) {
   return ref.watch(chatRepoProvider).watchChats();
@@ -186,16 +123,10 @@ final nearbyUsersProvider = StreamProvider<List<UserProfile>>((ref) {
   return ref.watch(discoveryServiceProvider).nearbyUsers;
 });
 
-final transfersStreamProvider = StreamProvider<List<FileTransfer>>((ref) {
-  return ref.watch(fileRepoProvider).watchTransfers();
-});
-
 final messagesStreamProvider =
     StreamProvider.family<List<dynamic>, String>((ref, chatId) {
   return ref.watch(chatRepoProvider).watchMessages(chatId);
 });
-
-// ── Own profile ────────────────────────────────────────────────────────────
 
 final keyManagerInitProvider = FutureProvider<String>((ref) async {
   final km = ref.watch(keyManagerProvider);
@@ -208,19 +139,24 @@ final ownProfileProvider = FutureProvider<UserProfile>((ref) async {
   final storage = ref.watch(secureStorageProvider);
   final nickname = await storage.read('profile_nickname') ??
       'Node-${nodeId.substring(0, 4)}';
+  final avatarB64 = await storage.read('profile_avatar');
+  Uint8List? avatar;
+  if (avatarB64 != null && avatarB64.isNotEmpty) {
+    try {
+      final decoded = base64Decode(avatarB64);
+      if (decoded.isNotEmpty) avatar = decoded;
+    } catch (_) {}
+  }
   return UserProfile(
     userId: nodeId,
     nickname: nickname,
+    avatar: avatar,
     lastSeen: DateTime.now().millisecondsSinceEpoch,
     seenVia: const {},
   );
 });
 
-// ── Current bottom nav tab ─────────────────────────────────────────────────
-
 final currentTabProvider = StateProvider<int>((_) => 0);
-
-// ── Unified mesh packet handler (message / ack / read) ────────────────────
 
 final incomingMessageHandlerProvider = Provider<void>((ref) {
   final router = ref.watch(meshRouterProvider);

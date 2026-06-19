@@ -8,7 +8,6 @@ class VoiceBubble extends StatelessWidget {
   const VoiceBubble({super.key, required this.message});
   final Message message;
 
-  /// Deterministic pseudo-random waveform derived from message ID.
   List<double> _waveform() {
     final seed = message.id.hashCode;
     final rng = Random(seed);

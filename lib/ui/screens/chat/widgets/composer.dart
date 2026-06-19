@@ -1,12 +1,6 @@
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart';
 import '../../../../core/theme/colors.dart';
-import '../../../../domain/models/message.dart';
-import '../../../providers/app_providers.dart';
 import '../../../widgets/circle_button.dart';
 import '../chat_controller.dart';
 import 'emoji_picker.dart';
@@ -62,51 +56,6 @@ class _ComposerState extends ConsumerState<Composer> {
     );
   }
 
-  Future<void> _attachFile() async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final result = await FilePicker.platform.pickFiles();
-    final path = result?.files.single.path;
-    if (path == null) return;
-
-    final file = File(path);
-    final fileName = p.basename(path);
-    final size = await file.length();
-
-    // Persist a chat-side message so the user sees the file appear immediately.
-    final msg = Message(
-      id: const Uuid().v4(),
-      chatId: widget.chatId,
-      kind: MessageKind.file,
-      timestamp: DateTime.now(),
-      isOutgoing: true,
-      fileName: fileName,
-      fileSizeBytes: size,
-      filePath: path,
-      status: MessageStatus.sending,
-    );
-    await ref.read(chatRepoProvider).saveMessage(msg);
-
-    messenger?.showSnackBar(const SnackBar(
-      content: Text('Отправка файла…'),
-      backgroundColor: Color(0xFF10161C),
-      duration: Duration(seconds: 1),
-    ));
-
-    try {
-      await ref
-          .read(fileTransferServiceProvider)
-          .sendFile(widget.chatId, path);
-      await ref
-          .read(appDatabaseProvider)
-          .updateMessageStatus(msg.id, MessageStatus.sent.index);
-    } catch (e) {
-      messenger?.showSnackBar(SnackBar(
-        content: Text('Не удалось отправить файл: $e'),
-        backgroundColor: const Color(0xFF10161C),
-      ));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -117,11 +66,6 @@ class _ComposerState extends ConsumerState<Composer> {
       ),
       child: Row(
         children: [
-          IconButton(
-            tooltip: 'Прикрепить файл',
-            onPressed: _attachFile,
-            icon: const Icon(Icons.attach_file, color: kTextMuted, size: 22),
-          ),
           IconButton(
             tooltip: 'Эмодзи',
             onPressed: _pickEmoji,

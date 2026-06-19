@@ -1,7 +1,5 @@
 import 'contact.dart';
 
-/// Pure transport-layer peer. Carries only network-level signal data.
-/// User identity (nickname, avatar, userId) lives in UserProfile.
 class Peer {
   const Peer({
     required this.nodeId,
@@ -13,7 +11,7 @@ class Peer {
 
   final String nodeId;
   final ConnectionMode mode;
-  final int signalLevel; // 0–4
+  final int signalLevel;
   final int distanceMeters;
-  final String? advertisedName; // nickname embedded in BLE scan response
+  final String? advertisedName;
 }

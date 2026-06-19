@@ -1,7 +1,5 @@
 import 'package:flutter/services.dart';
 
-// TODO: implement via MethodChannel to MeshForegroundService.kt
-// Keeps the mesh stack alive when the app is backgrounded.
 abstract interface class ForegroundService {
   Future<void> start({required String notificationTitle});
   Future<void> stop();

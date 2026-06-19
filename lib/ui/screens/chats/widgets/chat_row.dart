@@ -35,7 +35,7 @@ class ChatRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name + time
+
                   Row(
                     children: [
                       Expanded(
@@ -58,7 +58,7 @@ class ChatRow extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 3),
-                  // Preview + signal + badge
+
                   Row(
                     children: [
                       if (vm.lastMessageOutgoing &&

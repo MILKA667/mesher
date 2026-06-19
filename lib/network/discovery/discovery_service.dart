@@ -16,9 +16,6 @@ abstract interface class DiscoveryService {
   Stream<List<UserProfile>> get nearbyUsers;
   Future<void> updateOwnProfile({String? nickname, Uint8List? avatar});
 
-  /// Returns the best transport nodeId to use when routing packets to [userId].
-  /// Prefers an actively connected transport; falls back to any known mapping.
-  /// Returns null if the userId has never been seen.
   String? resolveRouteId(String userId);
 }
 
@@ -41,9 +38,8 @@ class DiscoveryServiceImpl implements DiscoveryService {
   static const _kNickname = 'profile_nickname';
   static const _kAvatar = 'profile_avatar';
 
-  // userId → UserProfile
   final _profiles = <String, UserProfile>{};
-  // transport nodeId → userId
+
   final _nodeToUser = <String, String>{};
 
   final _usersController = StreamController<List<UserProfile>>.broadcast();
@@ -53,6 +49,9 @@ class DiscoveryServiceImpl implements DiscoveryService {
 
   String? _ownNickname;
   Uint8List? _ownAvatar;
+
+  final _lastAnnounceAt = <String, DateTime>{};
+  static const _kAnnounceInterval = Duration(seconds: 30);
 
   @override
   Stream<List<UserProfile>> get nearbyUsers => _usersController.stream;
@@ -93,6 +92,7 @@ class DiscoveryServiceImpl implements DiscoveryService {
     _peerSubs.clear();
     _profiles.clear();
     _nodeToUser.clear();
+    _lastAnnounceAt.clear();
   }
 
   @override
@@ -102,14 +102,24 @@ class DiscoveryServiceImpl implements DiscoveryService {
       await _storage.write(_kNickname, nickname);
     }
     if (avatar != null) {
-      _ownAvatar = avatar;
-      await _storage.write(_kAvatar, base64Encode(avatar));
+
+      if (avatar.isEmpty) {
+        _ownAvatar = null;
+        await _storage.delete(_kAvatar);
+      } else {
+        _ownAvatar = avatar;
+        await _storage.write(_kAvatar, base64Encode(avatar));
+      }
+    }
+
+    for (final nodeId in _nodeToUser.keys.toList()) {
+      await _sendOwnProfile(nodeId, force: true);
     }
   }
 
   @override
   String? resolveRouteId(String userId) {
-    // Prefer a transport that reports itself as connected.
+
     for (final entry in _nodeToUser.entries) {
       if (entry.value == userId) {
         for (final t in _transports) {
@@ -117,7 +127,7 @@ class DiscoveryServiceImpl implements DiscoveryService {
         }
       }
     }
-    // Fall back to any known mapping even if not currently "connected".
+
     for (final entry in _nodeToUser.entries) {
       if (entry.value == userId) return entry.key;
     }
@@ -125,15 +135,23 @@ class DiscoveryServiceImpl implements DiscoveryService {
   }
 
   void _onTransportPeer(Peer peer) {
-    // BT advertises the crypto-derived userId directly.
+
     _nodeToUser[peer.nodeId] = peer.nodeId;
     _upsertTransportData(userId: peer.nodeId, peer: peer);
 
-    // Send our own profile packet so the remote learns our nickname/avatar.
     _sendOwnProfile(peer.nodeId);
   }
 
-  Future<void> _sendOwnProfile(String toNodeId) async {
+  Future<void> _sendOwnProfile(String toNodeId, {bool force = false}) async {
+    final now = DateTime.now();
+    if (!force) {
+      final last = _lastAnnounceAt[toNodeId];
+      if (last != null && now.difference(last) < _kAnnounceInterval) {
+        return;
+      }
+    }
+    _lastAnnounceAt[toNodeId] = now;
+
     final payload = <String, dynamic>{
       'userId': _keys.nodeId,
       'nickname': _ownNickname ?? 'Node-${_keys.nodeId.substring(0, 4)}',
@@ -151,7 +169,8 @@ class DiscoveryServiceImpl implements DiscoveryService {
         payload: utf8.encode(jsonEncode(payload)),
       ));
     } catch (_) {
-      // Transport not yet ready — the remote will re-trigger on next discovery.
+
+      _lastAnnounceAt.remove(toNodeId);
     }
   }
 
@@ -179,7 +198,7 @@ class DiscoveryServiceImpl implements DiscoveryService {
       );
       _emit();
     } catch (_) {
-      // Malformed profile announce — ignore.
+
     }
   }
 
@@ -188,7 +207,7 @@ class DiscoveryServiceImpl implements DiscoveryService {
     required Peer peer,
   }) {
     final existing = _profiles[userId];
-    // Use advertisedName from BLE scan response if we don't have a confirmed nickname yet.
+
     final nickname = existing?.nickname ??
         peer.advertisedName ??
         'Node-${userId.substring(0, 4)}';

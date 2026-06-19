@@ -43,7 +43,7 @@ class ChatsNotifier extends StateNotifier<ChatsState> {
   Future<void> refreshChats(List<ChatRow> chatRows) async {
     final vms = await Future.wait(chatRows.map((row) async {
       final chat = AppDatabase.chatFromRow(row);
-      // Join contact for mode/signal/online/nodeId
+
       final contactRow = await _db.findContact(chat.contactId);
       final contact = contactRow != null
           ? AppDatabase.contactFromRow(contactRow)
@@ -59,13 +59,11 @@ final chatsNotifierProvider =
   final db = ref.watch(appDatabaseProvider);
   final notifier = ChatsNotifier(db);
 
-  // Subscribe to DB stream
   db.watchChats().listen((rows) => notifier.refreshChats(rows));
 
   return notifier;
 });
 
-// Helper for building Contact-less ChatViewModel from domain contact
 extension ContactModeHelper on Contact {
   static ConnectionMode modeOf(Contact? c) =>
       c?.mode ?? ConnectionMode.bluetooth;

@@ -43,9 +43,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
     await _ref.read(chatRepoProvider).saveMessage(msg);
 
-    // Retry up to 3 times with 10-second timeout each attempt.
-    // On failure the transport clears its GATT cache, so each retry
-    // forces a fresh BLE connection.
     final bytes = utf8.encode('${msg.id}|$trimmed');
     bool sent = false;
     for (int attempt = 0; attempt < 3 && !sent; attempt++) {

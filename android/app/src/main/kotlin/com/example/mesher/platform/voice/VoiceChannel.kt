@@ -19,25 +19,6 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import kotlin.concurrent.thread
 
-/**
- * Thin Kotlin bridge for low-latency voice capture/playback.
- *
- *  PCM 8 kHz mono 16-bit (16 KB/s) — fits within BLE GATT throughput on
- *  modern phones (typically 10–30 KB/s with a 512-byte MTU). Frame size is
- *  exposed via [SAMPLES_PER_FRAME] so Dart can read a constant number of
- *  bytes per packet.
- *
- *  Methods (MethodChannel `meshlink/voice`):
- *    - startCapture()     → start AudioRecord, push PCM frames via EventChannel
- *    - stopCapture()
- *    - startPlayback()    → start AudioTrack
- *    - stopPlayback()
- *    - playFrame(bytes)   → enqueue a raw PCM frame for playback
- *    - setSpeakerOn(bool) → toggle earpiece vs. loudspeaker
- *
- *  EventChannel `meshlink/voice/frames` emits ByteArray PCM frames as they
- *  arrive from the microphone.
- */
 class VoiceChannel(
     private val context: Context,
     messenger: BinaryMessenger
@@ -45,9 +26,7 @@ class VoiceChannel(
 
     companion object {
         const val SAMPLE_RATE = 8000
-        // 60 ms frame @ 8 kHz mono 16-bit = 960 bytes. Larger frames mean fewer
-        // BLE writes per second (16.7 fps instead of 50 fps), which keeps audio
-        // intelligible inside the practical BLE GATT throughput envelope.
+
         const val SAMPLES_PER_FRAME = 480
         private const val TAG = "VoiceChannel"
     }
@@ -104,9 +83,7 @@ class VoiceChannel(
     @SuppressLint("MissingPermission")
     private fun startCapture() {
         if (capturing) return
-        // Switch the audio system into voice-call mode BEFORE creating the
-        // AudioRecord. Without this, MediaRecorder.AudioSource.VOICE_COMMUNICATION
-        // sometimes opens with the wrong route and the mic stays silent.
+
         try {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             am.mode = AudioManager.MODE_IN_COMMUNICATION
@@ -134,7 +111,6 @@ class VoiceChannel(
             Log.e(TAG, "AudioRecord not initialized"); return
         }
 
-        // Hardware echo/noise suppression if available.
         if (AcousticEchoCanceler.isAvailable()) {
             aec = AcousticEchoCanceler.create(rec.audioSessionId)?.apply { enabled = true }
         }
@@ -179,7 +155,7 @@ class VoiceChannel(
             AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT
         )
-        val bufSize = maxOf(minBuf, SAMPLES_PER_FRAME * 2 * 8) // ~160 ms jitter buffer
+        val bufSize = maxOf(minBuf, SAMPLES_PER_FRAME * 2 * 8)
         track = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -201,7 +177,7 @@ class VoiceChannel(
         try {
             track?.play()
             playing = true
-            setSpeakerOn(false) // default to earpiece
+            setSpeakerOn(false)
         } catch (e: Exception) {
             Log.e(TAG, "AudioTrack start failed", e)
         }

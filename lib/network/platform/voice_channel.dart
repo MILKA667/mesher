@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 
-/// Thin Dart wrapper around the `meshlink/voice` platform channel.
 class VoiceChannel {
   static const _methods = MethodChannel('meshlink/voice');
   static const _frames = EventChannel('meshlink/voice/frames');
 
   Stream<Uint8List>? _frameStream;
 
-  /// Stream of raw PCM frames captured from the microphone.
-  /// 8 kHz mono 16-bit, 320 samples / 640 bytes per frame.
   Stream<Uint8List> get captureStream {
     return _frameStream ??= _frames
         .receiveBroadcastStream()

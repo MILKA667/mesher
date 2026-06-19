@@ -125,7 +125,7 @@ class _ReactionsRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ownId = ref.watch(keyManagerProvider).nodeId;
-    // Group reactions by emoji.
+
     final grouped = <String, List<Reaction>>{};
     for (final r in reactions) {
       grouped.putIfAbsent(r.emoji, () => []).add(r);

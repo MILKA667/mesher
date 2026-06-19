@@ -22,7 +22,7 @@ class MeshLinkApp extends ConsumerStatefulWidget {
 }
 
 class _MeshLinkAppState extends ConsumerState<MeshLinkApp> {
-  // null = still checking, false = onboarding needed, true = go to main app
+
   bool? _identityReady;
 
   @override
@@ -42,7 +42,7 @@ class _MeshLinkAppState extends ConsumerState<MeshLinkApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MeshLink',
+      title: 'Mesher',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       navigatorKey: rootNavigatorKey,

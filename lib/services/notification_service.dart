@@ -63,12 +63,6 @@ class NotificationService with WidgetsBindingObserver {
       description: 'Голосовые звонки от пиров mesh-сети',
       importance: Importance.max,
     ));
-    await android?.createNotificationChannel(const AndroidNotificationChannel(
-      'files',
-      'Файлы',
-      description: 'Уведомления о загрузке/раздаче файлов',
-      importance: Importance.low,
-    ));
   }
 
   Future<void> showMessage({
@@ -76,7 +70,7 @@ class NotificationService with WidgetsBindingObserver {
     required String sender,
     required String text,
   }) async {
-    // Suppress if the app is foreground and we're already viewing this chat.
+
     if (isAppForeground && _activeChatId == chatId) return;
 
     const details = NotificationDetails(
@@ -127,27 +121,6 @@ class NotificationService with WidgetsBindingObserver {
 
   Future<void> cancelCall() => _plugin.cancel(_callNotificationId);
 
-  Future<void> showFileEvent({
-    required String title,
-    required String body,
-  }) async {
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'files',
-        'Файлы',
-        channelDescription: 'Уведомления о загрузке/раздаче файлов',
-        importance: Importance.low,
-        priority: Priority.low,
-      ),
-    );
-    await _plugin.show(
-      _fileNotificationId,
-      title,
-      body,
-      details,
-    );
-  }
-
   Future<void> cancelChat(String chatId) =>
       _plugin.cancel(_chatNotificationId(chatId));
 
@@ -156,12 +129,10 @@ class NotificationService with WidgetsBindingObserver {
     for (final code in chatId.codeUnits) {
       hash = (hash * 31 + code) & 0x7FFFFFFF;
     }
-    // Reserve 1, 2 for call/file. Chats start at 100.
     return 100 + (hash % 0x7FFFFF00);
   }
 
   static const _callNotificationId = 1;
-  static const _fileNotificationId = 2;
 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);

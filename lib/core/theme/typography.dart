@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'colors.dart';
 
-// Font family constants — point to bundled TTFs once placed in assets/fonts/
-// and pubspec.yaml fonts section is uncommented.
 const kFontGrotesk = 'SpaceGrotesk';
 const kFontMono = 'JetBrainsMono';
 

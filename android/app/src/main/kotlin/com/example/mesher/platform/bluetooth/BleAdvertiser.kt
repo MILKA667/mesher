@@ -9,13 +9,11 @@ import android.content.Context
 import android.os.ParcelUuid
 import android.util.Log
 
-/** Advertises this node's presence via BLE so other devices can discover it. */
 class BleAdvertiser(private val context: Context) {
 
     companion object {
         private const val TAG = "BleAdvertiser"
-        // Manufacturer ID 0xFFFF (reserved/test). Scan response layout:
-        // [8 bytes nodeId][up to 19 bytes nickname UTF-8] — total ≤ 27 bytes data, 31 bytes PDU.
+
         private const val MFG_ID = 0xFFFF
     }
 

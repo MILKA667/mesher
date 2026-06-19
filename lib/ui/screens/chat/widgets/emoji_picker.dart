@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/colors.dart';
 
-/// Curated list of frequently-used emojis. Splittable across composer
-/// (insert) and reactions (toggle) without pulling in a heavyweight package.
 const kCommonEmojis = <String>[
   '😀', '😂', '😊', '😍', '🥰', '😘', '😎', '🤔',
   '😅', '😇', '🙃', '😉', '😋', '🤗', '🤩', '😜',
@@ -14,7 +12,6 @@ const kCommonEmojis = <String>[
   '☕', '🍺', '🍷', '🌹', '🌟', '⚡', '🌈', '☀️',
 ];
 
-/// Most common reactions — shown first in the reactions sheet.
 const kQuickReactions = <String>['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '🎉'];
 
 class EmojiSheet extends StatelessWidget {
@@ -98,7 +95,6 @@ class EmojiSheet extends StatelessWidget {
   }
 }
 
-/// Compact horizontal strip for picking a quick reaction.
 class QuickReactionBar extends StatelessWidget {
   const QuickReactionBar({super.key, required this.onSelected, this.onMore});
 

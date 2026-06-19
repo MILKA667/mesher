@@ -32,8 +32,6 @@ class ReactionsService {
     _sub = null;
   }
 
-  /// Toggle a reaction by the local user on [messageId] in [chatId].
-  /// If the same emoji already exists, it's removed; otherwise added.
   Future<void> toggle({
     required String chatId,
     required String messageId,
@@ -76,7 +74,7 @@ class ReactionsService {
     await _router.route(Packet(
       type: PacketType.messageReaction,
       senderId: _keys.nodeId,
-      recipientId: chatId, // 1:1 chat: chatId == peer userId
+      recipientId: chatId,
       payload: payload,
     ));
   }
@@ -89,8 +87,7 @@ class ReactionsService {
       final messageId = map['m'] as String;
       final emoji = map['e'] as String;
       final op = (map['op'] as String?) ?? 'add';
-      // We always store the reaction under the sender's chat — for a 1:1 chat
-      // that's the senderId from the packet (the remote peer == our chatId).
+
       final chatId = packet.senderId;
       final userId = packet.senderId;
       if (op == 'remove') {
@@ -105,7 +102,7 @@ class ReactionsService {
         ));
       }
     } catch (_) {
-      // Malformed payload — ignore.
+
     }
   }
 }

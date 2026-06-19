@@ -4,8 +4,6 @@ import '../../core/theme/colors.dart';
 import '../../domain/models/contact.dart';
 import 'conn_badge.dart';
 
-/// Geometric avatar — colored square with initials, online dot, mode badge.
-/// Pass [avatarBytes] to display a real photo; falls back to initials.
 class Avatar extends StatelessWidget {
   const Avatar({
     super.key,
@@ -31,18 +29,28 @@ class Avatar extends StatelessWidget {
     (Color(0xFF5AD7FF), Color(0xFF003049)),
   ];
 
-  String get _initials => name
-      .split(' ')
-      .take(2)
-      .map((s) => s.isNotEmpty ? s[0].toUpperCase() : '')
-      .join();
+  String get _initials {
+
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final buf = StringBuffer();
+    for (final p in parts.take(2)) {
+      if (p.isEmpty) continue;
+      final firstRune = p.runes.first;
+      buf.write(String.fromCharCode(firstRune).toUpperCase());
+    }
+    return buf.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final hash = name.isNotEmpty
-        ? name.codeUnitAt(0) + name.codeUnitAt(name.length - 1)
-        : 0;
+
+    var hash = 0;
+    for (final code in name.codeUnits) {
+      hash = (hash + code) & 0xFFFF;
+    }
     final (fg, bg) = _palette[hash % _palette.length];
+
+    final hasPhoto = avatarBytes != null && avatarBytes!.isNotEmpty;
 
     return SizedBox(
       width: size,
@@ -50,7 +58,7 @@ class Avatar extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          if (avatarBytes != null)
+          if (hasPhoto)
             ClipRRect(
               borderRadius: BorderRadius.circular(size * 0.27),
               child: Image.memory(
@@ -58,6 +66,7 @@ class Avatar extends StatelessWidget {
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
+                gaplessPlayback: true,
               ),
             )
           else

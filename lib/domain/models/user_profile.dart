@@ -16,8 +16,8 @@ class UserProfile {
   final String userId;
   final String nickname;
   final Uint8List? avatar;
-  final int lastSeen; // epoch ms
-  final int signalLevel; // 0–4
+  final int lastSeen;
+  final int signalLevel;
   final int distanceMeters;
   final Set<ConnectionMode> seenVia;
   final bool isKnownContact;

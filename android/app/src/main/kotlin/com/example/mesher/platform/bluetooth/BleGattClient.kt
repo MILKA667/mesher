@@ -5,7 +5,6 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 
-/** GATT client: connects to a remote peer's GATT server and writes data to its RX characteristic. */
 class BleGattClient(
     private val context: Context,
     private val device: BluetoothDevice,
@@ -20,10 +19,8 @@ class BleGattClient(
     var isConnected = false
         private set
 
-    // Negotiated payload size (ATT MTU minus 3-byte ATT header). Default is conservative.
     private var chunkSize = 20
 
-    // Write queue: each element is one chunk. pendingCallback is called when queue drains.
     private val writeQueue = ArrayDeque<ByteArray>()
     private var pendingCallback: ((Boolean) -> Unit)? = null
 
@@ -50,7 +47,7 @@ class BleGattClient(
             rxCharacteristic = service.getCharacteristic(BleGattServer.RX_CHAR_UUID)
             isConnected = true
             mainHandler.post { onConnected() }
-            // Request larger MTU as a background optimization (does not block send).
+
             gatt.requestMtu(512)
         }
 
@@ -58,7 +55,7 @@ class BleGattClient(
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 chunkSize = mtu - 3
             }
-            // isConnected already set in onServicesDiscovered
+
         }
 
         override fun onCharacteristicWrite(
@@ -71,7 +68,7 @@ class BleGattClient(
                     pendingCallback = null
                     return@post
                 }
-                writeQueue.removeFirstOrNull() // chunk confirmed sent
+                writeQueue.removeFirstOrNull()
                 if (writeQueue.isEmpty()) {
                     pendingCallback?.invoke(true)
                     pendingCallback = null
@@ -86,15 +83,10 @@ class BleGattClient(
         gatt = device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
     }
 
-    /** Send [data], calling [callback] when all bytes are delivered (or on failure).
-     *
-     *  Wire format: [4-byte big-endian length][data bytes], then split into MTU chunks.
-     *  The receiver reassembles chunks before handing the message to Flutter.
-     */
     fun send(data: ByteArray, callback: (Boolean) -> Unit) {
         mainHandler.post {
             if (!isConnected || rxCharacteristic == null) { callback(false); return@post }
-            // Prepend 4-byte big-endian length header so the receiver can reassemble.
+
             val len = data.size
             val framed = ByteArray(4 + len).also { buf ->
                 buf[0] = (len shr 24).toByte()

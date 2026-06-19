@@ -1,9 +1,5 @@
 import '../../domain/models/contact.dart';
 
-// ─────────────────────────────────────────────────────────────
-// Data classes (UI-only, не связаны с репозиториями)
-// ─────────────────────────────────────────────────────────────
-
 enum MockMsgKind { text, file, voice }
 
 enum MockTransferState { active, seeding, queued, done }
@@ -76,7 +72,7 @@ class MockMessage {
   });
 
   final MockMsgKind kind;
-  final String sender; // 'me' | 'them'
+  final String sender;
   final String time;
   final String? text;
   final bool isSent;
@@ -137,10 +133,6 @@ class MockFileItem {
   final String? speed;
   final String? eta;
 }
-
-// ─────────────────────────────────────────────────────────────
-// Mock instances
-// ─────────────────────────────────────────────────────────────
 
 const kMockChats = <MockChatEntry>[
   MockChatEntry(

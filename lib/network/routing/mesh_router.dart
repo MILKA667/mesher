@@ -11,8 +11,6 @@ abstract interface class MeshRouter {
   String? nextHopFor(String destinationNodeId);
 }
 
-/// Simple flood router: sends to all connected transports.
-/// Tracks seen packet hashes to prevent loops.
 class FloodRouter implements MeshRouter {
   FloodRouter(this._codec);
   final PacketCodec _codec;
@@ -31,16 +29,17 @@ class FloodRouter implements MeshRouter {
         final packet = _codec.decode(bytes);
         final key = '${packet.senderId}:${packet.nonce}';
         if (!_seen.contains(key)) {
+
+          if (_seen.length >= 1000) {
+            _seen.removeAll(_seen.take(500).toList());
+          }
           _seen.add(key);
-          if (_seen.length > 1000) _seen.clear();
-          // Let the transport register a reverse route to the sender using the
-          // transport-level address (e.g. BLE MAC) so it can reply even before
-          // a full scan/discovery event fires.
+
           transport.registerSender(packet.senderId, senderAddr);
           _incomingController.add(packet);
         }
       } catch (_) {
-        // Malformed packet — ignore
+
       }
     });
     _subs.add(sub);
@@ -61,7 +60,6 @@ class FloodRouter implements MeshRouter {
     final bytes = _codec.encode(packet);
     final recipientId = packet.recipientId;
 
-    // Unicast: send only to the target if we know a route.
     if (recipientId != null) {
       for (final transport in _transports) {
         if (transport.isConnected(recipientId) ||
@@ -72,7 +70,6 @@ class FloodRouter implements MeshRouter {
       }
     }
 
-    // Fallback broadcast: send to every peer in every transport's cache.
     for (final transport in _transports) {
       for (final nodeId in transport.knownPeers) {
         if (nodeId != packet.senderId) {

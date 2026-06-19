@@ -7,7 +7,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 
-// TODO: implement foreground service that keeps the mesh stack alive
 class MeshForegroundService : Service() {
 
     companion object {

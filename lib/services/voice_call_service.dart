@@ -14,8 +14,6 @@ class VoiceCallInfo {
   final String? peerName;
 }
 
-/// Voice call orchestrator. Runs over the mesh router on BLE transport.
-/// Uses the `meshlink/voice` platform channel for raw PCM capture/playback.
 class VoiceCallService {
   VoiceCallService({
     required KeyManager keys,
@@ -54,7 +52,6 @@ class VoiceCallService {
     _packetSub ??= _router.incomingPackets.listen(_handlePacket);
   }
 
-  /// Place an outgoing voice call to [peerId].
   Future<void> startCall(String peerId, {String? peerName}) async {
     if (_state != VoiceCallState.idle && _state != VoiceCallState.ended) {
       return;
@@ -70,7 +67,6 @@ class VoiceCallService {
     ));
   }
 
-  /// Accept an incoming voice call.
   Future<void> acceptCall() async {
     if (_state != VoiceCallState.ringing || _peerId == null) return;
     await _router.route(Packet(
@@ -83,7 +79,6 @@ class VoiceCallService {
     _setState(VoiceCallState.active);
   }
 
-  /// Reject an incoming call without picking up.
   Future<void> rejectCall() async {
     if (_peerId != null) {
       await _router.route(Packet(
@@ -96,7 +91,6 @@ class VoiceCallService {
     await _teardown();
   }
 
-  /// End an active or dialing call.
   Future<void> hangup() async {
     if (_peerId != null) {
       await _router.route(Packet(
@@ -116,7 +110,7 @@ class VoiceCallService {
 
   Future<void> toggleMute() async {
     _micMuted = !_micMuted;
-    // We keep the capture stream alive but suppress sending while muted.
+
   }
 
   void _setState(VoiceCallState s) {
@@ -127,7 +121,7 @@ class VoiceCallService {
   Future<void> _handlePacket(Packet packet) async {
     switch (packet.type) {
       case PacketType.voiceCallOffer:
-        // Reject overlapping calls automatically.
+
         if (_state == VoiceCallState.active ||
             _state == VoiceCallState.dialing) {
           await _router.route(Packet(

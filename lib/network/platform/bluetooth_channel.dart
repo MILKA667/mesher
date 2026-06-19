@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import '../../core/constants.dart';
 
-/// Dart-side bridge for "meshlink/bluetooth" MethodChannel and EventChannels.
-/// Kotlin owns hardware; this class owns the stream lifecycle.
 class BluetoothChannel {
   static const _cmd = MethodChannel(AppConstants.chBluetoothName);
   static const _peerEvents =
@@ -14,13 +12,10 @@ class BluetoothChannel {
   bool _scanning = false;
   bool get isScanning => _scanning;
 
-  /// Emits raw peer advertisement maps from Kotlin BleScanner.
-  /// Each map: {nodeId: String, rssi: int, advData: Uint8List}
   Stream<Map<String, dynamic>> get peerStream => _peerEvents
       .receiveBroadcastStream()
       .map((e) => Map<String, dynamic>.from(e as Map));
 
-  /// Emits incoming data frames: (senderNodeId, bytes).
   Stream<(String, List<int>)> get rxStream =>
       _rxEvents.receiveBroadcastStream().map((e) {
         final m = Map<String, dynamic>.from(e as Map);
@@ -57,8 +52,6 @@ class BluetoothChannel {
       _cmd.invokeMethod<void>(
           'send', {'nodeId': nodeId, 'data': Uint8List.fromList(data)});
 
-  /// Register a nodeId → MAC mapping in the Kotlin scanner so future
-  /// connect(nodeId) calls can find the BluetoothDevice without a scan event.
   Future<void> registerPeer(String nodeId, String mac) =>
       _cmd.invokeMethod<void>('registerPeer', {'nodeId': nodeId, 'mac': mac});
 }

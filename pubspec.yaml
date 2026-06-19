@@ -18,18 +18,11 @@ dependencies:
   drift_flutter: ^0.2.4
   sqlite3_flutter_libs: ^0.5.26
 
-  # Secure key storage
+  # Persistent key/value storage for node ID, nickname, avatar
   flutter_secure_storage: ^9.2.2
-
-  # Cryptography (pure Dart — Ed25519, X25519, AES-256-GCM)
-  cryptography: ^2.7.0
 
   # Foreground service (BLE scan в фоне)
   flutter_foreground_task: ^8.13.0
-
-  # File paths
-  path_provider: ^2.1.4
-  path: ^1.9.1
 
   # Packet codec
   cbor: ^6.3.1
@@ -40,11 +33,14 @@ dependencies:
   # Local notifications (новые сообщения, входящие звонки)
   flutter_local_notifications: ^17.2.4
 
-  # File picker (раздача файлов в swarm)
+  # File picker (выбор аватара)
   file_picker: ^8.1.4
 
-  # Hashing for swarm info_hash (SHA-256)
+  # Hashing (ключи, подписи)
   crypto: ^3.0.6
+
+  # Pure-Dart image decode/resize/encode (avatar thumbnail)
+  image: ^4.3.0
 
 dev_dependencies:
   flutter_test:

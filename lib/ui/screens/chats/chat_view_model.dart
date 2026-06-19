@@ -3,8 +3,6 @@ import '../../../domain/models/chat.dart';
 import '../../../domain/models/contact.dart';
 import '../../../domain/models/message.dart';
 
-/// Flattened view model for a single chat list row.
-/// Built in ChatsNotifier by joining Chat + Contact rows.
 class ChatViewModel {
   const ChatViewModel({
     required this.id,
@@ -25,7 +23,7 @@ class ChatViewModel {
 
   final String id;
   final String displayName;
-  final String nodeId;   // formatted, e.g. "7F2A·E4"
+  final String nodeId;
   final String? lastMessage;
   final String timeLabel;
   final int unreadCount;

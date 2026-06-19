@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** GATT server (receives data from remote clients) + manages outgoing GATT clients. */
 class BleGattServer(
     private val context: Context,
     private val onReceive: (nodeId: String, data: ByteArray) -> Unit
@@ -23,11 +22,9 @@ class BleGattServer(
 
     private val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private var gattServer: BluetoothGattServer? = null
-    private val clients = mutableMapOf<String, BleGattClient>() // nodeId → outgoing client
+    private val clients = mutableMapOf<String, BleGattClient>()
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Per-remote-device reassembly buffers (BLE delivers one MTU chunk per write).
-    // Keyed by device MAC address; cleared on disconnect.
     private val receiveBuffers = mutableMapOf<String, ByteArrayOutputStream>()
 
     private val serverCallback = object : BluetoothGattServerCallback() {
@@ -47,13 +44,12 @@ class BleGattServer(
             preparedWrite: Boolean, responseNeeded: Boolean,
             offset: Int, value: ByteArray
         ) {
-            // sendResponse must happen immediately on this binder thread
+
             if (responseNeeded) {
                 gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
             }
             if (characteristic.uuid != RX_CHAR_UUID || value.isEmpty()) return
 
-            // Accumulate chunk into per-device buffer then extract length-prefixed frames.
             val addr = device.address
             val buf = receiveBuffers.getOrPut(addr) { ByteArrayOutputStream() }
             buf.write(value)
@@ -70,20 +66,18 @@ class BleGattServer(
                     buf.reset()
                     return
                 }
-                if (pos + 4 + msgLen > bytes.size) break // incomplete frame, wait for more
+                if (pos + 4 + msgLen > bytes.size) break
                 val msg = bytes.copyOfRange(pos + 4, pos + 4 + msgLen)
                 Log.d(TAG, "Reassembled ${msg.size} bytes from $addr")
                 mainHandler.post { onReceive(addr, msg) }
                 pos += 4 + msgLen
             }
 
-            // Keep only the unprocessed tail in the buffer
             buf.reset()
             if (pos < bytes.size) buf.write(bytes, pos, bytes.size - pos)
         }
     }
 
-    /** Open the GATT server and register the mesh service. Call once on startup. */
     fun start() {
         val server = btManager.openGattServer(context, serverCallback) ?: return
         gattServer = server
